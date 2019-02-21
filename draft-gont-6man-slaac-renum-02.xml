@@ -1,0 +1,762 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+
+<?rfc subcompact="no" ?>
+<?rfc toc="yes" ?>
+<?rfc symrefs="yes" ?>
+<?rfc sortrefs="yes"?>
+<?rfc strict="no" ?>
+
+<rfc updates="4861, 4862" category="std"  ipr="trust200902"
+docName="draft-gont-6man-slaac-renum-01">
+  <front>
+    <title abbrev="Reaction to Renumbering Events">Reaction of Stateless Address Autoconfiguration (SLAAC) to Renumbering Events</title>
+
+
+    <author fullname="Fernando Gont" initials="F." surname="Gont">
+
+      <organization abbrev="SI6 Networks / UTN-FRH">SI6 Networks /
+UTN-FRH</organization>
+      <address>
+        <postal>
+          <street>Segurola y Habana 4310, 7mo Piso</street>
+<!--          <code>1706</code> -->
+          <city>Villa Devoto</city>
+          <region>Ciudad Autonoma de Buenos Aires</region>
+          <country>Argentina</country>
+        </postal>
+        <phone>+54 11 4650 8472</phone>
+        <email>fgont@si6networks.com</email>
+        <uri>https://www.si6networks.com</uri>
+       </address>
+    </author>
+
+
+    <author fullname="Jan Zorz" initials="J." surname="Zorz">
+
+<!--
+      <organization abbrev="SI6 Networks / UTN-FRH">SI6 Networks /
+UTN-FRH</organization>
+-->
+      <address>
+        <postal>
+          <street>Frankovo n. 165</street>
+<!--          <code>1706</code> -->
+          <city>Skofja Loka</city>
+<!--          <region>Ciudad Autonoma de Buenos Aires</region> -->
+          <country>Slovenia</country>
+        </postal>
+        <email>jan@go6.si</email>
+
+      </address>
+    </author>
+
+    <author fullname="J. Linkova" initials="J." surname="Linkova">
+      <organization abbrev="Google">Google</organization>
+
+      <address>
+        <postal>
+          <street>1600 Amphitheatre Parkway</street>
+          <city>Mountain View</city>
+          <region>CA 94043</region>
+          <country>USA</country>
+        </postal>
+
+        <email>furry@google.com</email>
+      </address>
+    </author>
+
+    <date/>
+
+    <area>Internet</area>
+    <workgroup>IPv6 Maintenance (6man) Working Group</workgroup>
+
+<!-- [rfced] Please insert any keywords (beyond those that appear in
+the title) for use on http://www.rfc-editor.org/search.html. -->
+
+<keyword></keyword>
+
+
+
+    <abstract>
+      <t><!--A very common IPv6 deployment scenario is that in which a CPE router employs DHCPv6 Prefix Delegation to obtain an IPv6 prefix, and at least one prefix from within the leased prefix is advertised on a local network via SLAAC. -->In scenarios where network configuration information related to IPv6 prefixes becomes invalid without any explicit signaling of that condition (such as when a CPE crashes and reboots without knowledge of the previously-employed prefixes), nodes on the local network will continue using stale prefixes for an unacceptably long period of time, thus resulting in connectivity problems. This document analyzes these problem scenarios, and proposes workarounds to improve network robustness. This document updates RFC4861 and RFC4862 to allow for a more robust reaction to network configuration changes.</t>
+    </abstract>
+  </front>
+  <middle>
+    <section anchor="intro" title="Introduction">
+<t>In scenarios where network configuration information related to IPv6 prefixes becomes invalid without any explicit signaling of that condition, nodes on the local network will continue using stale prefixes for an unacceptably long period of time, thus resulting in connectivity problems.</t>
+
+      <t>There are a number of scenarios where this problem may arise. For example, the most common deployment scenario for IPv6 in home networks is that in which a CPE router employs DHCPv6 Prefix Delegation (DHCPv6-PD) <xref target="RFC8415"/> to request a prefix from the Internet Service Provider (ISP), and a prefix belonging to the leased prefix is advertised on the LAN-side of the CPE via Stateless Address Autoconfiguration (SLAAC) <xref target="RFC4862"/>. In scenarios where the CPE router crashes and reboots, the CPE may be leased (via DHCPv6-PD) a different prefix from the one previously leased, and will therefore advertise (via SLAAC) the new prefix on the LAN side. Hosts will normally configure an address for the new prefix, but will normally retain and actively employ the previously-configured addresses, since their associated Preferred Lifetime and Valid Lifetime allow them to do so.</t>
+
+<t>
+Lacking any explicit signaling to "obsolete" the previously-configured addresses (for the now invalid/stale prefix), hosts may continue employing the previously-configured addresses which will typically result in packets being blackholed -- whether because of egress-filtering by the CPE or ISP, or because responses to such packets will be discarded or routed elsewhere.
+</t>
+
+<t>The default values for the "Valid Lifetime" and "Preferred Lifetime" of Prefix Information Options (PIOs), as specified in <xref target="RFC4861"/>, are:
+
+<list style="symbols">
+<t>Valid Lifetime (AdvValidLifetime): 2592000 seconds (30 days)</t>
+<t>Preferred Lifetime (AdvPreferredLifetime): 604800 seconds (7 days)</t>
+
+</list>
+</t>
+
+<t>This means that in the aforementioned scenarios, the stale addresses would be retained for unacceptably long period of time, thus leading to interoperability problems, instead of nodes transitioning to the newly-advertised prefix(es) in a timelier manner.</t>
+
+<t>Some devices have implemented mechanisms to address this problem, such as sending RAs to invalidate the apparently stale prefixes when the device receive any packets employing a source address from a prefix not being advertised for address configuration <xref target="FRITZ"/>. However, this may introduce other interoperability problems, particularly in multihomed scenarios. This is yet another indication that advice in this area is warranted.</t>
+
+
+<t>This unresponsiveness is caused by the both the inability of the network to deprecate stale information, as well as by the inability of hosts to react to network configuration changes in a timelier manner. Clearly, it is desirable that behave in a way that hosts are explicitly notified when configuration information has become stale. However, for robustness reasons it is paramount for hosts to be able to recover from stale configuration information even if somehow the network is unable to explictly notify hosts about such condition.
+</t>
+<t><xref target="problem"/> analysis this problem in more detail. <xref target="Solutions"/> proposes workarounds to improve network robustness.</t>
+</section>
+
+	<section title="Terminology" anchor="term">
+
+        <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL",
+        "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY",
+        and "OPTIONAL" in this document are to be interpreted as
+        described in 
+        <xref target='RFC2119' />.</t>
+</section>
+
+<section title="Analysis of the Problem" anchor="problem">
+<t>As noted in <xref target="intro"/>, the problem discussed in this document is associated with sub-optimal behaviour and policies of different entities. Each of the following sections analyze each of them in detail.</t>
+
+<section title="Inappropriate Default Timer Values in IPv6 Stateless Address Autoconfiguration (SLAAC)" anchor="timer-problem">
+<t>Many protocols, from different layers, normally employ timers. The general logic is as follows:
+<list style="symbols">
+<t>A timer is set with a value that, under normal conditions, the timer does *not* go off.</t>
+<t>Whenever a fault condition arises, the timer goes off, and the protocol can perform fault recovery</t>
+</list>
+</t>
+
+<t>One common example for the use of timers is when implementing reliability mechanisms where a packet is transmitted, and unless a response is received, a retransmission timer will go off to trigger retransmission of the original packet.</t>
+
+<t>For obvious reasons, the whole point of using timers is that in problematic scenarios, they will go off, and trigger some recovery action.</t>
+<t>However, IPv6 SLAAC employs, for PIOs, these default values:
+<list style="symbols">
+<t>Preferred Lifetime (AdvPreferredLifetime): 604800 seconds (7 days)</t>
+<t>Valid Lifetime (AdvValidLifetime): 2592000 seconds (30 days)</t>
+</list>
+</t>
+
+<t>Under normal network conditions, these timers will be reset/refreshed to the default values. However, under problematic circumstances such as where the corresponding network information has become stale without any explicit signal from the network (as described in <xref target="intro"/>), it will take a host 7 days (one week) to un-prefer the corresponding addresses, and 30 days (one month) to eventually remove any addresses configured for the stale prefix.</t>
+
+<t>Clearly, for any practical purposes, employing such long default values is equivalent of not using any timers at all, since taking 7 days or 30 days (respectively) to recover from a network problem is simply unacceptable.</t>
+
+<t>The default values for these timers should be such that, under normal circumstances (including some packet loss), the timers will be refreshed/rest, but in the presence of network faults (such as network configuration information becoming stale without explicit signaling), the timers go off and trigger some fault recovering action (such as un-preferring the corresponding addresses and subsequently removing them).
+</t>
+
+<t>In the context of <xref target="RFC8028"/>, where it is clear that use of addresses configured for a given prefix is mostly tied to using the router that advertised the prefix as a next hop, one could tell that neither the "Preferred Lifetime" or the "Valid Lifetime" of a PIO should ever be longer than the default value for the "Router Lifetime" of Router Advertisement packets. This means that since <xref target="RFC4861"/> specifies the default value for the "Router Lifetime" as: AdvDefaultLifetime: 3 * MaxRtrAdvInterval, and MaxRtrAdvInterval defaults to 600 seconds, the values employed for the "Preferred Lifetime" (AdvPreferredLifetime) and "Valid Lifetime" (AdvValidLifetime) of PIOs should never be larger than 1800 seconds (30 minutes). Capping the lifetimes in PIOs as suggested would not eliminate the problem discussed in this document, but certainly reduces the amount of time it takes for hosts to converge to updated network configuration information.
+</t>
+
+<!--
+
+
+MaxRtrAdvInterval: 300 seconds (5 minutes)
+MinRtrAdvInterval: 0.33 * MaxRtrAdvInterval = 99 seconds
+AdvDefaultLifetime: 3 * MaxRtrAdvInterval  (no mayor a 9000) = 900 (15 minutes)
+*********
+
+Current values:
+AdvDefaultLifetime: 3 * 600 = 1800 = 30 minutes
+-->
+<t><xref target="timers"/> of this document updates the SLAAC specification to employ more appropriate timer values.</t>
+</section>
+
+
+<section title="Inability of SLAAC Hosts to Recover from Stale Network Configuration Information" anchor="hosts-problem">
+<t>In the absence of explicit signalling from SLAAC routers (such as sending PIOs with a "Valid Lifetime" set to 0), SLAAC hosts fail to recover from stale configuration information in a timely manner. This is exacerbated by the inappropriate timers employed for the lifetime of PIOs, as discussed in <xref target="timer-problem"/>.
+</t>
+<t>It is possible to heuristically infer that network configuration information has changed. For example, if the same SLAAC router (as identified by its link-local address) is advertising new prefixes via PIOs, but has ceased to advertise the previously-advertised prefixes, this should be considered an indication that network configuration information has changed. Implementing this kind of heuristics would allow a timelier reaction to network configuration changes even in scenarios where there is no explicit signaling from the network, thus improving robustness.
+</t>
+
+<t><xref target="stale-config"/> of this document specifies a local policy that SLAAC hosts can implement to recover from stale prefixes.</t>
+</section>
+
+<section title="Lack of Explicit Signaling about Stale Information" anchor="cpe-problem">
+<t>Whenever prefix information has changed, a SLAAC router should not only advertise the new information, but should also advertise the stale information with appropriate lifetime values (both "Preferred Lifetime" and "Valid Lifetime" set to 0), such that there is explicit signaling to SLAAC hosts to remove the stale information (including configured addresses and routes).
+</t>
+<t>In order to cope with the possibility of a SLAAC router crashing and rebooting without any state of the previously-advertised prefixes, a SLAAC router should record on stable storage the information of which prefixes were being advertised on which interfaces, such that upon reboots, such prefixes may be advertised with appropriate lifetimes (both "Preferred Lifetime" and "Valid Lifetime" set to 0) to cause hosts to remove any configuration information derived from previous announcements of such prefixes.
+</t>
+<t>Explicit signaling of network configuration changes would eliminate the problem discussed in this document. However, since it is impossible for a host to know whether such explicit signals will be received, they are not relieved from inferring changes in network configuration information, as discussed in <xref target="hosts-problem"/>.
+</t>
+
+<t><xref target="sig-stale-config"/> updates the SLAAC specification such that routers explicitly signal stale configuration to SLAAC hosts. <xref target="CPE"/> specifies the corresponding requirements for CPE routers.</t>
+</section>
+
+<section title="Under-specified Interaction Between DHCPv6-PD and SLAAC" anchor="dhcpv6-pd-slaac-problem">
+<t>While DHCPv6-PD is normally employed along with SLAAC, the interaction between the two protocols is largely unspecified. Not unusually, the two protocols are specified in two different software components with the interface between the two implemented by some sort of script that takes feeds the SLAAC implementation with values learned from DHCPv6-PD.</t>
+
+<t>Quite frequently, the prefix lease time is fed as a constant value to the SLAAC router implementation, meaning that eventually the prefix lifetime advertised on the LAN side will span *past* the DHCPv6-PD lease time. This is clearly incorrect, since the SLAAC router implementation would be allowing the use of such prefixes for a longer time than it has been granted usage of those prefixes via DHCPv6-PD. The lifetime values employed for the "Preferred Lifetime" (AdvPreferredLifetime) and "Valid Lifetime" (AdvValidLifetime) should never be larger than the remaining lease time for the corresponding prefix (as learned via DHCPv6-PD).</t>
+
+<t><xref target="dhcpv6-pd-slaac"/> of this document specifies this aspect of the interaction between DHCPv6-PD and SLAAC.</t>
+</section>
+
+
+</section>
+
+    <section anchor="ops" title="Use of Dynamic Prefixes">
+	<t>The problem discussed in this document would be avoided if DHCPv6-PD would lease "stable" prefixes. However, a recent survey <xref target="UK-NOF"/> indicates that 37% of the responding ISPs employ dynamic prefixes. That is, dynamic IPv6 prefixes are an operational reality.</t>
+
+<t>Deployment reality aside, there are a number of possible issues associated with stable prefixes:
+	<list style="symbols">
+		<t>Provisioning systems may be unable to deliver stable IPv6 prefixes.</t>
+
+		<t>While there is a range of information that may be employed to correlate network activity <xref target="RFC7721"/>, the use of stable prefixes clearly simplifies network activity correlation, and may essentially render features such as "temporary addresses" <xref target="RFC4941"/> irrelevant. </t>
+
+		<t>There may be existing advice for ISPs to deliver dynamic IPv6 prefixes *by default* (see e.g. <xref target="GERMAN-DP"/>) over the privacy concerns associated with stable prefixes.</t>
+	</list>
+	</t>
+
+<t>The authors of this document understand that, for a number of reasons (such as the ones stated above), IPv6 deployments may employ dynamic prefixes, or there might be scenarios in which the dynamics of a network are such that the network exhibits the behaviour of dynamic prefixes. Rather than try to preclude how operators may run their networks, this document aims at improving network robustness in the deployed Internet.</t>
+</section>
+
+    <section anchor="Solutions" title="Possible workarounds">
+      <t>The following subsections discuss possible workarounds for the aforementioned problem. <xref target="host-side"/> specifies modifications to SLAAC which include the use of more appropriate lifetime values and a mechanism for hosts to infer when a previously-advertised prefix has become stale. This modification leads to more robust behaviour even for existing deployments.</t>
+
+<t>
+<xref target="CPE"/> specifies the interaction between DHCPv6-PD and SLAAC, such that devices such as CPEs may be in a better position to convey current network information to hosts on the LAN-side. For obvious reasons (legacy CPEs, etc.), this improved behaviour cannot be relied upon for mitigating the problem described in <xref target="intro"/>. However, it does contribute to more robust IPv6 networks.</t>
+
+<t>Finally, <xref target="ops"/> analyzes the trade-offs of employing stable vs. dynamic network prefixes.</t>
+
+      <section title="Improvements to SLAAC" anchor="host-side">
+
+<section title="Default Timer Values" anchor="timers">
+
+<section title="Router Configuration Variables" anchor="router-config">
+<t>The "default" value for the router configuration variable "MaxRtrAdvInterval" (Section 6.2.1 of <xref target="RFC4861"/> is changed to 300 seconds (5 minutes).</t>
+
+<t>As a result of this change, the default values for two other configuration variables are indirectly modified (since they are specified in relation with MaxRtrAdvInterval):
+<list style="symbols">
+<t>MinRtrAdvInterval: 0.33 * MaxRtrAdvInterval = 99 seconds</t>
+<t>AdvDefaultLifetime: 3 * MaxRtrAdvInterval = 900 seconds (15 minutes)</t>
+</list>
+</t>
+
+
+<t>Additionally, the default value for the "lifetime" parameters in PIOs is updated as follows:
+
+<list>
+<t>AdvValidLifetime: AdvDefaultLifetime (which according to this specification defaults to 900 seconds / 15 minutes)</t>
+<t>AdvPreferredLifetime: 0.50 * AdvValidLifetime (which would result in 450 seconds, that is, 7.5 minutes)</t>
+</list>
+</t>
+
+<t>The motivation of this update is as follows:
+<list style="symbols">
+<t>Link the lifetimes associated with prefixes to the lifetime of the router advertising the prefixes, since use of advertised prefixes is closely tied to the router that has advertised them (as per <xref target="RFC8028"/>).</t>
+<t>Lacking RAs that refresh information, addresses configured for such prefixes would become un-preferred, and thus Rule 3 of <xref target="RFC6724"/> would cause other configured addresses (if available) to be preferred and used instead.</t>
+<t>Limit the amount of time that a stale prefix needs to be advertised with a lifetime od "0" on the local network (see Section 12 of <xref target="RFC4861"/>).</t>
+<t>Employ default router lifetimes that improve the ability of hosts to recover from fault scenarios.</t>
+</list>
+</t>
+
+</section>
+
+<section title="Processing of PIO Lifetimes at Hosts" anchor="hosts-config">
+<t>Hosts should cap the "Valid Lifetime" and "Preferred Lifetime" of PIOs to the "Router Lifetime" value in the received Router Advertisement. That is, if the "Valid Lifetime" or "Preferred Lifetime" of a PIO is larger than the "Router Lifetime" value of the Router Advertisement carrying the PIO, the corresponding value should be capped to that of the "Router Lifetime" value of the received RA.</t>
+
+<t>The motivation for this update is as follows:
+<list style="symbols">
+<t>Limits the amount of time a host is required to maintain possibly stale information.</t>
+</list>
+</t>
+
+</section>
+</section>  <!-- timers -->
+
+
+<section title="Signaling Stale Configuration Information" anchor="sig-stale-config">
+<t>In order to phase-out stale configuration information, the SLAAC specification is updated as follows:
+
+	<list style="symbols">
+		<t>A router sending RAs that advertise dynamically-learned prefixes (e.g. via DHCPv6-PD) on an interface MUST record, on stable storage, the list of prefixes being advertised on each network segment.</t>
+
+<t>Upon changes to the advertised prefixes, and after bootstrapping, the router advertising prefix information via SLAAC should proceed as follows:
+			<list style="symbols">
+				<t>Any prefixes that were previously advertised via SLAAC, but that are not currently intended for address configuration, MUST be advertised with a PIO option with the "A" bit set to 1 and the "Valid Lifetime" and a "Preferred Lifetime" set to 0.
+				</t>
+				<t>Any prefixes that were previously advertised via SLAAC as "on-link", but that are not currently not considered "on-link", MUST be advertised with a PIO option with the "L" bit set to 1 and the "Valid Lifetime" and a "Preferred Lifetime" set to 0.</t>
+				<t>If both of the previous conditions are met (a prefix was previously advertised with both the "A" and "L" bits set, but is currently *not* intended for address configuration and is *not* considered on-link), the prefix MUST be advertised with a PIO option with both the "A" and "L" bits set to 1 and the "Valid Lifetime" and a "Preferred Lifetime" set to 0. That is. the advertisements of the previous two steps can be coalesced into a single one with both the "A" and "L" bits set.</t>
+<t>The aforementioned advertisement SHOULD be performed for at least the "Valid Lifetime" previously employed for such prefix. </t>
+			</list>
+		</t>
+	</list>
+</t>
+
+
+<t>Additionally, this document replaces the following text from Section 6.2.4 of <xref target="RFC4861"/>:
+<list style="hanging">
+
+<t>
+
+   In such cases, the router MAY transmit up to
+   MAX_INITIAL_RTR_ADVERTISEMENTS unsolicited advertisements, using the
+   same rules as when an interface becomes an advertising interface.
+</t>
+</list>
+
+to:
+
+<list style="hanging">
+<t>
+   In such cases, the router MUST transmit 
+   MAX_INITIAL_RTR_ADVERTISEMENTS unsolicited advertisements, using the
+   same rules as when an interface becomes an advertising interface.
+</t>
+</list>
+</t>
+<t>The rationale for this update is:
+<list style="symbols">
+<t>Use of stale information can lead to interoperability problems. Therefore, it is paramount that new configuration information is delivered in a timely manner to all hosts.</t>
+</list>
+</t>
+</section>
+
+
+<section title="Recovery from Stale Configuration Information" anchor="stale-config">
+<t>The goal of the mechanism specified in this section is to allow hosts to infer when a previously-advertised prefix has become stale, such that previously-configured addresses are "phased-out" and the host can transition to the newly-advertised prefixes in a timelier manner.</t>
+
+<t>
+The basic premise behind the mechanism specified in this section is that, when a router advertises new prefixes for address configuration (PIO with the "A" bit set), but fails to advertise the previously-advertised prefixes, this is an indication that the previously-advertised prefixes have become stale. Therefore, configured addresses for the stale prefixes are initially "un-preferred" (such that they are not employed for new communication instances), and they are subsequently removed (if this condition persists).</t>
+
+<!--
+<t>The goal of this modification is that, when a router that was previously advertising a prefix for address configuration (PIO with the "A" bit set) is found to advertise other prefixes but not the previously-advertised prefixes, addresses configured for the "old" prefixes are marked as "not preferred" (i.e., their "Preferred Lifetime" is set to 0), thus allowing for a more timely-reaction to the problem described in <xref target="intro"/>.
+</t>
+-->
+	<t>Local information maintained for each prefix advertised by each router is augmented with one boolean flag named "LTA" (Lifetime Avoidance) that defaults to "FALSE". Note: hosts are already expected to keep track of which router has advertised which prefix in order to be able to properly select the first-hop router in multiple-prefix networks <xref target="RFC8028"/> <xref target="RFC8504"/>.</t>
+
+<t>After normal processing of Router Advertisement messages, Router Advertisements that contain at least one PIO MUST be processed as follows:
+
+<list style="symbols">
+
+
+	<t>The LTA flag for each prefix advertised in the current Router Advertisement should be set to "FALSE".</t>
+
+	<t>For each prefix that had been previously advertised by this router but that does not have a corresponding PIO with the "A" flag set in the received RA, proceed as follows:
+		<list style="symbols">
+			<t>IF the LTA flag is "TRUE", then:
+				<list style="symbols">
+					<t>IF there is any address configured for this prefix with a "Preferred Lifetime" larger than 0, set its "Preferred Lifetime" to 0, and the LTA flag of this prefix to "FALSE".</t>
+
+					<t>ELSE (all addresses for this prefix have a "Preferred Lifetime" of 0), set the "Valid Lifetime" of all addresses configured for this prefix to 0, and the LTA flag of this prefix to "FALSE". This will cause removal of all addresses for this prefix. Additionally, if the corresponding prefix had been advertised as on-link ("L"=1) by this router, remove any routes to this prefix associated with the network interface card on which the RA packet was received.</t>
+				</list>
+			</t>
+
+			<t>ELSE (the LTA flag is "FALSE"):
+				<list style="symbols">
+					<t>Set the LTA flag of the corresponding prefix to "TRUE".</t>
+				</list>
+			</t>
+		</list>
+	</t>
+</list>
+</t>
+
+<t><xref target="timeline"/> illustrates the packet exchange and operation of the algorithm for a typical scenario. <xref target="flowchart"/> provides a flowchart for this algorithm. </t>
+
+
+<t>NOTES:
+<list style="symbols">
+<t>The aforementioned processing assumes that while network configuration information might be split into multiple RAs, PIOs will be spread among *at most* two RAs. This assumption avoids the use of any timers for this specific purpose.</t>
+<t>If the only prefix that has so far been advertised on the local network is the prefix that has become stale, and there is no new prefix being advertised, the traditional processing is unaffected (the mechanism discussed in this document will *never* be triggered because no packets with PIOs with the "A" flag will be received). The logic here is that it is better to have some address, than no address at all.</t>
+<t>The processing of RAs that do not contain any PIOs with the "A" bit set remains unaffected.</t>
+<t>The specified modification takes the conservative approach of first setting the "Preferred Lifetime" to 0 (such that addresses become non-preferred), and subsequently setting the "Valid Lifetime" to 0 (such as the addresses are completely removed). Once the addresses for this prefix have been removed, routes to this prefix associated with the network interface on which the RA packets were received are also removed.</t>
+<t>In cases where this scenario has been triggered by a CPE router crashing and rebooting, it would take hosts less than one minute to mark the corresponding addresses as "not preferred", and less than five minutes to completely remove such addresses from the system. Section 6.2.4 of <xref target="RFC4861"/> specifies that when an interface becomes an advertising interface, the first few unsolicited RAs (up to MAX_INITIAL_RTR_ADVERTISEMENTS, specified as 3) will be sent at intervals of at most MAX_INITIAL_RTR_ADVERT_INTERVAL (specified as 16 seconds). This means that, in the worst-case scenario, it would take hosts 32 seconds to mark stale addresses as "not preferred". The fourth unsolicited RA will be sent after a random amount of time between MinRtrAdvInterval (default: 0.33 * MaxRtrAdvInterval) and MaxRtrAdvInterval (default: 600 seconds) has elapsed, thus meaning that the stale addresses would be removed between 3.3 and 10 minutes of being marked as "not preferred".
+</t>
+</list>
+
+</t>
+      </section>
+</section>
+
+
+<section title="Interaction Between DHCPv6-PD and SLAAC" anchor="dhcpv6-pd-slaac">
+<t>The "Preferred Lifetime" and "Valid Lifetime" of PIOs corresponding to prefixes learned via DHCPv6-PD MUST NOT span past the lease time of the DHCPv6-PD prefixes. This means that the advertised "Preferred Lifetime" and "Valid Lifetime" MUST be dynamically adjusted such that the advertised lifetimes never span past the lease time of the prefixes delegated via DHCPv6-PD.</t>
+
+
+<t>This is in line with these existing requirements from other specifications, which we reference here for clarity:
+	<list style="symbols">
+
+	<t><xref target="RFC8415"/> specifies, in Section 6.3, that "if the delegated prefix
+   or a prefix derived from it is advertised for stateless address
+   autoconfiguration [RFC4862], the advertised preferred and valid
+   lifetimes MUST NOT exceed the corresponding remaining lifetimes of
+   the delegated prefix."
+	</t>
+
+	</list>
+
+</t>
+</section>
+
+    <section anchor="CPE" title="Improved CPE behavior">
+<t>This section specifies and clarifies requirements for CPE routers (particularly when they advertise prefixes learned via DHCPv6-PD) that can help mitigate the problem discussed in <xref target="intro"/>. This improves the situation for hosts that do not implement the modification specified in <xref target="host-side"/> but would obviously make robustness dependent on the CPE (on which the user or ISP may have no control), as opposed to the host itself. This mechanism is mostly orthogonal to the improved host behaviour specified in <xref target="host-side"/>.</t>
+
+<t>The updated behaviour is as follows:
+
+	<list style="symbols">
+		<t>The CPE MUST signal stale configuration information as specified in <xref target="sig-stale-config"/></t>
+		<t>The CPE MUST implement the DHCPv6-PD/SLAAC interface specified in <xref target="dhcpv6-pd-slaac"/>.</t>
+	</list>
+</t>
+
+
+
+
+
+<t>The aforementioned improved behaviour assumes compliance with the following existing requirements from other specifications, which we reference here for clarity:
+	<list style="symbols">
+	<t><xref target="RFC7084"/> specifies (requirement LE-13, in Section 4.3) that when the delegated prefix changes (i.e., the current prefix is
+          replaced with a new prefix without any overlapping time period), "the IPv6 CE router MUST immediately advertise the
+          old prefix with a Preferred Lifetime of zero and a Valid
+          Lifetime of either a) zero or b) the lower of the current
+          Valid Lifetime and two hours (which must be decremented in
+          real time) in a Router Advertisement message as described in
+          Section 5.5.3, (e) of [RFC4862]"</t>
+
+	</list>
+
+</t>
+    </section>
+
+
+</section>
+
+
+    <section title="IANA Considerations">
+      <t>
+This document has no actions for IANA.
+</t>
+    </section>
+
+    <section title="Security Considerations">
+      <t>This document discusses a a problem that may arise in scenarios where dynamic IPv6 prefixes are employed, and proposes workarounds that enable such usage while avoiding interoperability problems. The security and privacy implications of IPv6 addresses are discussed in <xref target="RFC7721"/>.</t>
+<t>An attacker that could impersonate a router could forge multiple RA packets that contain PIOs of prefixes that are currently not advertised on the local network, to trigger the mechanism specified in this document to cause addresses currently configured for the legitimate prefixes to be removed. However, an attacker that can impersonate a router could more easily achieve the same goal by advertising the legitimate prefixes with both the "Preferred Lifetime" and "Valid Lifetime" set to 0.</t>
+
+<t>Capping the "Valid Lifetime" and "Preferred Lifetime" at hosts limit the length of the effects of a non-sustained attack, since hosts would now be able to recover in a timelier manner.</t>
+
+<t>Attacks based on forged RA packed can be mitigated with technologies such as RA-Guard <xref target="RFC6105"/> <xref target="RFC7113"/>.
+</t>
+    </section>
+
+
+
+<section title="Acknowledgments">
+<t>The authors would lie to thank (in alphabetical order) Mikael Abrahamsson, Luis Balbinot, Brian Carpenter, Gert Doering, Nick Hilliard, Philip Homburg, Lee Howard, Christian Huitema, Albert Manfredi, Jordi Palet Martinez, Richard Patterson, Michael Richardson, Mark Smith, Tarko Tikan, and Ole Troan, for providing valuable comments on earlier versions of this document.</t>
+
+<t>Fernando would like to thank <!--Niloofar Adeli (Shatel, Iran), -->Alejandro D'Egidio <!--(Telecentro, Argentina)--> and Sander Steffann for a discussion of these issues. Fernando would also like to thank Brian Carpenter who, over the years, has answered many questions and provided valuable comments that has benefited his protocol-related work.</t>
+
+      <t>The problem discussed in this document has been previously documented in <xref target="RIPE-690"/>.</t>
+    </section>
+
+  </middle>
+  <back>
+
+    <references title="Normative References">
+	<?rfc include="reference.RFC.2119" ?>
+	<?rfc include="reference.RFC.8415" ?>
+	<?rfc include="reference.RFC.8028" ?>
+	<?rfc include="reference.RFC.4861" ?>
+	<?rfc include="reference.RFC.4862" ?>
+	<?rfc include="reference.RFC.4941" ?>
+	<?rfc include="reference.RFC.8504" ?>
+	</references>
+
+
+
+
+
+    <references title="Informative References">
+
+	<?rfc include="reference.RFC.2827" ?>
+	<?rfc include="reference.RFC.5927" ?>
+	<?rfc include="reference.RFC.6105" ?>
+	<?rfc include="reference.RFC.6724" ?>
+	<?rfc include="reference.RFC.7084" ?>
+	<?rfc include="reference.RFC.7113" ?>
+	<?rfc include="reference.RFC.7721" ?>
+
+
+
+	<reference anchor="GERMAN-DP" target="http://www.bfdi.bund.de/SharedDocs/Publikationen/Entschliessungssammlung/DSBundLaender/84DSK_EinfuehrungIPv6.pdf?__blob=publicationFile">
+		<front>
+			<title>Einfuhrung von IPv6 Hinweise fur Provider im Privatkundengeschaft und Herstellere</title>
+
+    <author>
+		<organization>BFDI</organization>
+    </author>  
+
+			<date month="November" year="2012"/>
+		</front>
+		<seriesInfo name="Entschliessung der 84. Konferenz der Datenschutzbeauftragten des Bundes und der Lander" value="am 7./8. November 2012 in Frankfurt (Oder)"/>
+	</reference>
+
+
+	<reference anchor="FRITZ" target="http://blog.si6networks.com/2016/02/quiz-weird-ipv6-traffic-on-local-network.html">
+		<front>
+			<title>Quiz: Weird IPv6 Traffic on the Local Network (updated with solution)</title>
+
+
+    <author fullname="Fernando Gont" initials="F." surname="Gont">
+
+      <organization abbrev="SI6 Networks / UTN-FRH">SI6 Networks</organization>
+      <address>
+        <postal>
+          <street>Segurola y Habana 4310, 7mo Piso</street>
+<!--          <code>1706</code> -->
+          <city>Villa Devoto</city>
+          <region>Ciudad Autonoma de Buenos Aires</region>
+          <country>Argentina</country>
+        </postal>
+        <phone>+54 11 4650 8472</phone>
+        <email>fgont@si6networks.com</email>
+        <uri>https://www.si6networks.com</uri>
+       </address>
+    </author>
+
+			<date month="February" year="2016"/>
+		</front>
+		<seriesInfo name="SI6 Networks" value="Blog"/>
+	</reference>
+
+
+
+	<reference anchor="RIPE-690" target="https://www.ripe.net/publications/docs/ripe-690">
+		<front>
+			<title>Best Current Operational Practice for Operators: IPv6 prefix assignment for end-users - persistent vs non-persistent, and what size to choose</title>
+
+
+    <author fullname="Jan Zorz" initials="J." surname="Zorz">
+
+    </author>
+
+
+    <author fullname="Sander Steffannz" initials="S." surname="Zorz">
+
+    </author>
+    <author fullname="Primoz Drazumeric" initials="P." surname="Drazumeric">
+
+    </author>
+    <author fullname="Mark Townsley" initials="M." surname="Townsley">
+
+    </author>
+    <author fullname="Andrew Alston" initials="J." surname="Alston">
+
+    </author>
+    <author fullname="Gert Doering" initials="G." surname="Doering">
+
+    </author>
+    <author fullname="Jordi Palet" initials="J." surname="Palet">
+
+    </author>
+    <author fullname="Jen Linkova" initials="J." surname="Linkova">
+
+    </author>
+
+
+    <author fullname="Luis Balbinot" initials="L." surname="Balbinot">
+
+    </author>
+
+    <author fullname="Kevin Meynell" initials="K." surname="Meynell">
+
+    </author>
+
+
+    <author fullname="Lee Howard" initials="L." surname="Howard">
+
+    </author>
+
+
+
+
+
+
+			<date month="October" year="2017"/>
+		</front>
+		<seriesInfo name="RIPE" value="690"/>
+	</reference>
+
+
+
+
+	<reference anchor="UK-NOF" target="https://indico.uknof.org.uk/event/41/contributions/542/attachments/712/866/bcop-ipv6-prefix-v9.pdf">
+		<front>
+			<title>IPv6 Deployment Survey (Residential/Household Services) How IPv6 is being deployed?</title>
+
+
+    <author fullname="Jordi Palet" initials="J." surname="Palet">
+
+    </author>
+
+
+			<date month="January" year="2018"/>
+		</front>
+		<seriesInfo name="UK NOF" value="39"/>
+	</reference>
+
+
+
+    </references>
+
+<section anchor="flowchart" title="Flowchart for Host Processing of RAs">
+<t>Conceptually, the mechanism operates as follows:</t>
+<t>
+<figure><artwork><![CDATA[
++----------------+
+|  Normal proc.  |
+|  of RA packet  |
++---------+------+ 
+        |
+        v
++----------------+
+|   RA has PIO   |  No
+|   with A==1?   |------>  DONE
++----------------+
+        |
+        |  Yes
+        v
++----------------+
+| (For each PIO) |
+|    LTA=TRUE    |
++----------------+
+        |
+        v
++----------------+      +-----------------+
+| (For each Pref |      |                 |
+|   assoc. with  | Yes  |                 |
+|   this router) |----->|    LTA=FALSE    |
+| Is there corr. |      |                 |
+| PIO in the RA? |      |                 |
++----------------+      +-----------------+
+        |
+        | No
+        v
++----------------+      +-----------------+      +----------------+
+|                |      | (For each addr. |      | Valid Lftime=0 |
+|                | Yes  | for this Pref.) | Yes  |   LTA=FALSE    |
+|   LTA==TRUE?   |----->|                 |----->|  (REM. ADDR!)  | 
+|                |      | Pref Lftime==0? |      |                !
++----------------+      +-----------------+      +----------------+
+        |                        |
+        | No                     | No
+        v                        v
++----------------+      +-----------------+
+|                |      |  Pref. Lftime=0 |
+|   LTA=TRUE     |      |    LTA=FALSE    |
++----------------+      +-----------------+
+]]></artwork></figure>
+</t>
+
+</section>
+
+<section anchor="timeline" title="Sample Timeline for Host Processing of RAs">
+<t>The following example illustrates a sample packet exchange that illustrates the algorithm specified in <xref target="host-side"/>:</t>
+<t>
+<figure><artwork><![CDATA[
+ Router                                           Host
+       RA, PIO={2001:DB8:1::/64, L=1, A=1}
+     -------------------------------------->
+                                             [Host configures addrs
+                                               for this prefix]
+
+       RA, PIO={2001:DB8:1::/64, L=1, A=1}
+     -------------------------------------->  
+                                             [Normal proc. of RA]
+                        .
+                        .
+[Router reboots]
+
+       RA, PIO={2001:DB8:2::/64, L=1, A=1}
+     -------------------------------------->   {2001:DB8:1::/64,
+                                                   LTA=TRUE}
+                        .
+                        .
+       RA, PIO={2001:DB8:2::/64, L=1, A=1}
+     -------------------------------------->   {2001:DB8:1::/64,
+                                                   LTA=FALSE}
+                                                Pref. Lftime=0
+                                                  
+                        .
+                        .
+       RA, PIO={2001:DB8:2::/64, L=1, A=1}
+     -------------------------------------->  {2001:DB8:1::/64,
+                                                   LTA=TRUE}
+                        .
+                        .
+       RA, PIO={2001:DB8:2::/64, L=1, A=1}
+     -------------------------------------->  {2001:DB8:1::/64,
+                                                   LTA=FALSE}
+                                               Valid Lftime=0
+                                               (Addr. Removed!)
+]]></artwork></figure>
+</t>
+</section>
+
+
+<section anchor="other" title="Analysis of Some Suggested Workarounds">
+<t>[This section is to be removed before publication of this document as an RFC].</t>
+<t>During the discussion of this document, some alternative workarounds were suggested (e.g. on the 6man list). The following subsections analyze these suggested workarounds, in the hopes of avoiding rehashing discussions of such workarounds.</t>
+
+<section anchor="icmp" title="On a Possible Reaction to ICMPv6 Error Messages">
+<t>It has been suggested that if configured addresses become stale, a CPE enforcing ingress/egress filtering BCP38 (<xref target="RFC2827"/>) might send ICMPv6 Type 1 (Destination Unreachable) Code 5 (Source address failed ingress/egress policy) error messages to the sending node, and that, upon receipt of such error messages, the sending node might perform heuristics that might help to mitigate the problem discussed in this document.</t>
+
+<t>The aforementioned proposal has a number of drawbacks and limitations:
+	<list style="symbols">
+		<t>It assumes that the CPE enforces ingress/egress filtering <xref target="RFC2827"/>. While this is desirable behaviour, it cannot be relied upon.</t>
+		<t>It assumes that if the CPE enforces ingress/egress filtering, the CPE will signal the packet drops to the sending node with ICMPv6 Type 1 (Destination Unreachable) Code 5 (Source address failed ingress/egress policy) error messages. While this may be desirable, <xref target="RFC2827"/> does not suggest signaling the packet drops with ICMPv6 error messages, let alone the use of specific error messages (such as Type 1 Code 5) as suggested.</t>
+		<t>ICMPv6 Type 1 Code 5 could be interpreted as the employed address to be stale, but also as a selected route being inappropriate/suboptimal. If the later, un-preferring addresses or removing addresses upon receipt of these error messages would be inappropriate.</t>
+		<t>Reacting to these error messages would create a new attack vector. This is of particular concern since ICMP-based attack do not even require that the Source Address of the attack packets be spoofed <xref target="RFC5927"/>.</t>
+	</list>
+</t>
+</section>
+
+<section anchor="sas" title="On a Possible Improvement to Source Address Selection">
+
+<t><xref target="RFC6724"/> specifies source address selection (SAS) for IPv6. Conceptually, it sorts the candidate set of source addresses for a given destination, based on a number of pair-wise comparison rules that must be successively applied until there is a "winning" address.</t>
+
+<t>It has been suggested that an implementation might improve source address selection, and prefer the most-recently advertised information. In order to incorporate the "freshness" of information in source address selection, an implementation would be updated as follows:
+	<list style="symbols">
+		<t>The node is assumed to maintain a timer/counter that is updated at least once per second. For example, the time(2) function from unix-like systems could be employed for this purpose.</t>
+		<t>The local information associated with each prefix advertised via RAs on the local network is augmented with a "LastAdvertised" timestamp value. Whenever an RA with a PIO with the "A" bit set for such prefix is received, the "LastAdvertised" timestamp is updated with the current value of the timer/counter.</t>
+		<t><xref target="RFC6724"/> is updated such that this rule is incorporated:
+			<list style="hanging">
+				<t hangText="Rule 3.5: Prefer fresh information">
+   If one of the two source addresses corresponds to a prefix that has been more recently advertised, say LastAdvertised(SA) > LastAdvertised(SA), then prefer that address (SA in our case).
+				</t>
+			</list>
+		</t>
+	</list>
+</t>
+
+<t>There are a number of limitations and drawbacks associated with this approach:
+	<list style="symbols">
+		<t>It may help to improve the selection of a source address, but it does not help with the housekeeping of configured information:
+			<list style="symbols">
+				<t>If the stale prefix is re-used in another network, nodes employing stale addresses and routes for this prefixes will be unable to communicate with the new "owners" of the prefix.</t>
+				<t>Given that currently recommended default value for the "Valid Lifetime" of PIOs is 2592000 seconds (30 days), it would take too long for hosts to remove the configured addresses and routes for the stale prefix.</t>
+			</list>
+		</t>
+		<t>The earlier the above rule is incorporated into the <xref target="RFC6724"/> rules, the more it could lead to suboptimal address selection. For example, if incorporated as Rule 3.5 (before Rule #4, but after Rule 3), an implementation may end up choosing a source address from a "fresher" prefix rather than one with a longest-matching prefix, thus leading to suboptimal routing. On the other hand, the later the rule is incorporated into the <xref target="RFC6724"/> rules, the more irrelevant the rule becomes (since existing rules might prefer the stale addresses).
+		</t>
+
+		<t>In scenarios where multiple prefixes are being advertised (whether by a single router via multiple RAs, multiple routers on the same LAN segment, or different routers on different LAN segments (when a host has multiple interfaces)), the new SAS rule is guaranteed to result in non-deterministic behaviour, with hosts frequently changing the selected address. This is certainly not desirable from a troubleshooting perspective.</t>
+	</list>
+</t>
+
+<t>As a result, updating IPv6 source address selection does not relieve nodes from improving their SLAAC implementations as specified in <xref target="host-side"/>, if at all desirable. On the other hand, employing appropriate timers as specified in <xref target="timers"/> would result in Rule 3 of <xref target="RFC6724"/> employing fresh addresses, without leading to undeterministic behaviour.
+</t>
+</section>
+</section>
+
+  </back>
+</rfc>
+<!--
+Local Variables:
+mode:xml
+End:
+=-->
