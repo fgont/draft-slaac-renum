@@ -203,9 +203,9 @@ AdvDefaultLifetime: 3 * 600 = 1800 = 30 minutes
 <section title="Inability of SLAAC Hosts to Recover from Stale Network Configuration Information" anchor="hosts-problem">
 <t>SLAAC hosts are unable to recover from stale network configuration information for a number of reasons:
 <list style="symbols">
-<t>Item "e)" of Section 5.5.3 of <xref target="RFC4862"/> specifies that an RA may never reduce the "RemainingLifetime" more than to two hours. If the RemainingLifetime of an address is smaller than 2 hours, then a corresponding PIO advertising a Valid Lifetime smaller than 2 hours will be ignored. And since the Preferred Lifetime of an address is required to be greater than or equal to the Valid Lifetime, the Preferred Lifetime cannot be reduced to any value lower than 2 hours, either.
+<t>Item "e)" of Section 5.5.3 of <xref target="RFC4862"/> specifies that an RA may never reduce the "RemainingLifetime" more than to two hours. If the RemainingLifetime of an address is smaller than 2 hours, then a Valid Lifetime smaller than 2 hours will be ignored. The Preferred Lifetime of an address can be reduced to any value to avoid the use of a stale prefix to be employed for new communications. However, this will not mitigate the problem that may arise when trying to communicate with the new "owners" of the stale prefix, since the stale prefix is likely to be considered "on-link".
 </t>
-<t>In the absence of explicit signalling from SLAAC routers (such as sending PIOs with a "Valid Lifetime" set to 0), SLAAC hosts fail to recover from stale configuration information in a timely manner. This is exacerbated by the inappropriate timers employed for the lifetime of PIOs, as discussed in <xref target="timer-problem"/>.
+<t>In the absence of explicit signalling from SLAAC routers (such as sending PIOs with a "Prefered Lifetime" set to 0), SLAAC hosts fail to recover from stale configuration information in a timely manner. This is exacerbated by the inappropriate timers employed for the lifetime of PIOs, as discussed in <xref target="timer-problem"/>. We stress that, as previously noted, explicit signaling (in the form of RAs containing a PIO for the stale prefix with a "Prefered Lifetime" of 0) can only partially mitigate the aforementioned problem.
 </t>
 </list>
 </t>
@@ -550,7 +550,7 @@ This document has no actions for IANA.
 
 <t>Fernando would like to thank <!--Niloofar Adeli (Shatel, Iran), -->Alejandro D'Egidio <!--(Telecentro, Argentina)--> and Sander Steffann for a discussion of these issues. Fernando would also like to thank Brian Carpenter who, over the years, has answered many questions and provided valuable comments that has benefited his protocol-related work.</t>
 
-      <t>The problem discussed in this document has been previously documented in <xref target="RIPE-690"/> and <xref target="I-D.linkova-6man-default-addr-selection-update"/>.</t>
+      <t>The problem discussed in this document has been previously documented by Jen Linkova in <xref target="I-D.linkova-6man-default-addr-selection-update"/>, and also in <xref target="RIPE-690"/>. <xref target="intro"/> borrows text from <xref target="I-D.linkova-6man-default-addr-selection-update"/>, authored by Jen Linkova.</t>
     </section>
 
   </middle>
