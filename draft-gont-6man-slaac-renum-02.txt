@@ -5,10 +5,8 @@
 IPv6 Maintenance (6man) Working Group                            F. Gont
 Internet-Draft                                    SI6 Networks / UTN-FRH
 Updates: 4861, 4862 (if approved)                                J. Zorz
-Intended status: Standards Track
-Expires: August 29, 2019                                      J. Linkova
-                                                                  Google
-                                                       February 25, 2019
+Intended status: Standards Track                           March 8, 2019
+Expires: September 9, 2019
 
 
  Reaction of Stateless Address Autoconfiguration (SLAAC) to Renumbering
@@ -42,25 +40,24 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on August 29, 2019.
+   This Internet-Draft will expire on September 9, 2019.
 
 Copyright Notice
 
    Copyright (c) 2019 IETF Trust and the persons identified as the
    document authors.  All rights reserved.
 
-
-
-
-
-Gont, et al.             Expires August 29, 2019                [Page 1]
-
-Internet-Draft       Reaction to Renumbering Events        February 2019
-
-
    This document is subject to BCP 78 and the IETF Trust's Legal
    Provisions Relating to IETF Documents
    (https://trustee.ietf.org/license-info) in effect on the date of
+
+
+
+Gont & Zorz             Expires September 9, 2019               [Page 1]
+
+Internet-Draft       Reaction to Renumbering Events           March 2019
+
+
    publication of this document.  Please review these documents
    carefully, as they describe your rights and restrictions with respect
    to this document.  Code Components extracted from this document must
@@ -105,17 +102,17 @@ Table of Contents
    In scenarios where network configuration information related to IPv6
    prefixes becomes invalid without any explicit signaling of that
    condition, nodes on the local network will continue using stale
-
-
-
-
-Gont, et al.             Expires August 29, 2019                [Page 2]
-
-Internet-Draft       Reaction to Renumbering Events        February 2019
-
-
    prefixes for an unacceptably long period of time, thus resulting in
    connectivity problems.
+
+
+
+
+
+Gont & Zorz             Expires September 9, 2019               [Page 2]
+
+Internet-Draft       Reaction to Renumbering Events           March 2019
+
 
    Scenarios where this problem may arise include, but are not limited
    to, the following:
@@ -162,16 +159,17 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
    Lacking any explicit signaling to "obsolete" the previously-
    configured addresses (for the now invalid/stale prefix), hosts may
-
-
-
-Gont, et al.             Expires August 29, 2019                [Page 3]
-
-Internet-Draft       Reaction to Renumbering Events        February 2019
-
-
    continue employing the previously-configured addresses which will
    typically result in packets being blackholed -- whether because of
+
+
+
+
+Gont & Zorz             Expires September 9, 2019               [Page 3]
+
+Internet-Draft       Reaction to Renumbering Events           March 2019
+
+
    egress-filtering by the CPE or ISP, or because responses to such
    packets will be discarded or routed elsewhere.
 
@@ -217,17 +215,16 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
    As noted in Section 1, the problem discussed in this document is
    associated with sub-optimal behaviour and policies of different
-
-
-
-
-Gont, et al.             Expires August 29, 2019                [Page 4]
-
-Internet-Draft       Reaction to Renumbering Events        February 2019
-
-
    entities.  Each of the following sections analyze each of them in
    detail.
+
+
+
+
+Gont & Zorz             Expires September 9, 2019               [Page 4]
+
+Internet-Draft       Reaction to Renumbering Events           March 2019
+
 
 3.1.  Inappropriate Default Timer Values in IPv6 Stateless Address
       Autoconfiguration (SLAAC)
@@ -277,9 +274,12 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019                [Page 5]
+
+
+
+Gont & Zorz             Expires September 9, 2019               [Page 5]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
 3.2.  Inability of SLAAC Hosts to Recover from Stale Network
@@ -333,9 +333,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019                [Page 6]
+Gont & Zorz             Expires September 9, 2019               [Page 6]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    notifications.  Section 5.3 specifies the corresponding requirements
@@ -389,9 +389,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019                [Page 7]
+Gont & Zorz             Expires September 9, 2019               [Page 7]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    prefixes, or there might be scenarios in which the dynamics of a
@@ -445,9 +445,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019                [Page 8]
+Gont & Zorz             Expires September 9, 2019               [Page 8]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    o  AdvDefaultLifetime: 3 * MaxRtrAdvInterval = 900 seconds (15
@@ -501,9 +501,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019                [Page 9]
+Gont & Zorz             Expires September 9, 2019               [Page 9]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
 5.1.1.2.  Processing of PIO Lifetimes at Hosts
@@ -557,9 +557,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 10]
+Gont & Zorz             Expires September 9, 2019              [Page 10]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
          proper mitigations such as RA-Guard [RFC6105] [RFC7113] should
@@ -613,9 +613,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 11]
+Gont & Zorz             Expires September 9, 2019              [Page 11]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
       In such cases, the router MUST transmit
@@ -669,9 +669,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 12]
+Gont & Zorz             Expires September 9, 2019              [Page 12]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    order to be able to properly select the first-hop router in multiple-
@@ -725,9 +725,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 13]
+Gont & Zorz             Expires September 9, 2019              [Page 13]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    o  If the only prefix that has so far been advertised on the local
@@ -781,9 +781,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 14]
+Gont & Zorz             Expires September 9, 2019              [Page 14]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    o  [RFC8415] specifies, in Section 6.3, that "if the delegated prefix
@@ -837,9 +837,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 15]
+Gont & Zorz             Expires September 9, 2019              [Page 15]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
       must be decremented in real time) in a Router Advertisement
@@ -893,9 +893,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 16]
+Gont & Zorz             Expires September 9, 2019              [Page 16]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    and also in [RIPE-690].  Section 1 borrows text from
@@ -949,9 +949,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 17]
+Gont & Zorz             Expires September 9, 2019              [Page 17]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    [FRITZ]    Gont, F., "Quiz: Weird IPv6 Traffic on the Local Network
@@ -1005,9 +1005,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 18]
+Gont & Zorz             Expires September 9, 2019              [Page 18]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    [RFC7721]  Cooper, A., Gont, F., and D. Thaler, "Security and Privacy
@@ -1061,9 +1061,9 @@ Appendix A.  Flowchart for Host Processing of RAs
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 19]
+Gont & Zorz             Expires September 9, 2019              [Page 19]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    +----------------+
@@ -1117,9 +1117,9 @@ Appendix B.  Sample Timeline for Host Processing of RAs
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 20]
+Gont & Zorz             Expires September 9, 2019              [Page 20]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
     Router                                           Host
@@ -1173,9 +1173,9 @@ Appendix C.  Analysis of Some Suggested Workarounds
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 21]
+Gont & Zorz             Expires September 9, 2019              [Page 21]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
 C.1.  On a Possible Reaction to ICMPv6 Error Messages
@@ -1229,9 +1229,9 @@ C.2.  On a Possible Improvement to Source Address Selection
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 22]
+Gont & Zorz             Expires September 9, 2019              [Page 22]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    o  The node is assumed to maintain a timer/counter that is updated at
@@ -1285,9 +1285,9 @@ Internet-Draft       Reaction to Renumbering Events        February 2019
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 23]
+Gont & Zorz             Expires September 9, 2019              [Page 23]
 
-Internet-Draft       Reaction to Renumbering Events        February 2019
+Internet-Draft       Reaction to Renumbering Events           March 2019
 
 
    Section 5.1, if at all desirable.  On the other hand, employing
@@ -1316,13 +1316,6 @@ Authors' Addresses
    Email: jan@go6.si
 
 
-   J. Linkova
-   Google
-   1600 Amphitheatre Parkway
-   Mountain View, CA 94043
-   USA
-
-   Email: furry@google.com
 
 
 
@@ -1341,4 +1334,11 @@ Authors' Addresses
 
 
 
-Gont, et al.             Expires August 29, 2019               [Page 24]
+
+
+
+
+
+
+
+Gont & Zorz             Expires September 9, 2019              [Page 24]
