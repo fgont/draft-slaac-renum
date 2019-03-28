@@ -84,13 +84,15 @@ the title) for use on http://www.rfc-editor.org/search.html. -->
   </front>
   <middle>
     <section anchor="intro" title="Introduction">
+<t>IPv6 largely assumes prefix stability, with network renumbering only taking place in a planned manner, with old/stale prefixes being phased-out via reduced prefix lifetimes, and new prefixes (with longer lifetimes) being introduced at the same time. However, there are a number of scenarios that may lead to the so-called "flash-renumbering", where the prefix being employed on a network suddenly becomes invalid and replaced by a new prefix. In some of these scenarios, the local router producing the network renumbering may be able and try to deprecate the currently-employed prefixes (thus explicitly signaling the network about the renumbering event), whereas in other scenarios it may be unable to do so.</t>
+
 <t>In scenarios where network configuration information related to IPv6 prefixes becomes invalid without any explicit signaling of that condition, nodes on the local network will continue using stale prefixes for an unacceptably long period of time, thus resulting in connectivity problems.</t>
 
       <t>Scenarios where this problem may arise include, but are not limited to, the following:
 
 <list style="symbols">
 
-<t>The most common deployment scenario for IPv6 in home networks is that in which a CPE router employs DHCPv6 Prefix Delegation (DHCPv6-PD) <xref target="RFC8415"/> to request a prefix from the Internet Service Provider (ISP), and a prefix belonging to the leased prefix is advertised on the LAN-side of the CPE via Stateless Address Autoconfiguration (SLAAC) <xref target="RFC4862"/>. In scenarios where the CPE router crashes and reboots, the CPE may be leased (via DHCPv6-PD) a different prefix from the one previously leased, and will therefore advertise (via SLAAC) the new prefix on the LAN side. Hosts will normally configure an address for the new prefix, but will normally retain and actively employ the previously-configured addresses, since their associated Preferred Lifetime and Valid Lifetime allow them to do so.</t>
+<t>The most common deployment scenario for IPv6 in home networks is that in which a CPE router employs DHCPv6 Prefix Delegation (DHCPv6-PD) <xref target="RFC8415"/> to request a prefix from the Internet Service Provider (ISP), and a sub-prefix of the leased prefix is advertised on the LAN-side of the CPE router via Stateless Address Autoconfiguration (SLAAC) <xref target="RFC4862"/>. In scenarios where the CPE router crashes and reboots, the CPE may be leased (via DHCPv6-PD) a different prefix from the one previously leased, and therefore advertise (via SLAAC) the new prefix on the LAN side. Hosts will normally configure an address for the new prefix, but will normally retain and actively employ the previously-configured addresses, since their associated Preferred Lifetime and Valid Lifetime allow them to do so.</t>
 
 <t>A switchport the host is connected to is moved to another subnet
       (VLAN) as a result of manual switchport reconfiguration or 802.1x
@@ -140,10 +142,10 @@ Lacking any explicit signaling to "obsolete" the previously-configured addresses
 
 <t>This means that in the aforementioned scenarios, the stale addresses would be retained for unacceptably long period of time, thus leading to interoperability problems, instead of nodes transitioning to the newly-advertised prefix(es) in a timelier manner.</t>
 
-<t>Some devices have implemented mechanisms to address this problem, such as sending RAs to invalidate the apparently stale prefixes when the device receive any packets employing a source address from a prefix not being advertised for address configuration <xref target="FRITZ"/>. However, this may introduce other interoperability problems, particularly in multihomed scenarios. This is yet another indication that advice in this area is warranted.</t>
+<t>Some devices have implemented mechanisms to address this problem, such as sending RAs to invalidate the apparently stale prefixes when the device receives any packets employing a source address from a prefix not being advertised for address configuration <xref target="FRITZ"/>. However, this may introduce other interoperability problems, particularly in multihomed/multiprefix scenarios. This is clear indication that advice in this area is warranted.</t>
 
 
-<t>This unresponsiveness is caused by the both the inability of the network to deprecate stale information, as well as by the inability of hosts to react to network configuration changes in a timelier manner. Clearly, it is desirable that behave in a way that hosts are explicitly notified when configuration information has become stale. However, for robustness reasons it is paramount for hosts to be able to recover from stale configuration information even if somehow the network is unable to explictly notify hosts about such condition.
+<t>Unresponsiveness to these "flash-renumbering" events is caused by the both the inability of the network to deprecate stale information, as well as by the inability of hosts to react to network configuration changes in a timelier manner. Clearly, it would be desirable that these flash-renumbering scenarios do not occur, and that, when they do occur, that hosts are explicitly notified of their occurrence. However, for robustness reasons it is also paramount for hosts to be able to recover from stale configuration information even when these flas-renumbering events occur and the network is unable to explictly notify hosts about such condition.
 </t>
 <t><xref target="problem"/> analysis this problem in more detail. <xref target="Solutions"/> proposes workarounds to improve network robustness.</t>
 </section>
@@ -158,9 +160,9 @@ Lacking any explicit signaling to "obsolete" the previously-configured addresses
 </section>
 
 <section title="Analysis of the Problem" anchor="problem">
-<t>As noted in <xref target="intro"/>, the problem discussed in this document is associated with sub-optimal behaviour and policies of different entities. Each of the following sections analyze each of them in detail.</t>
+<t>As noted in <xref target="intro"/>, the problem discussed in this document exacerbated by a number of different parameters and behaviours. Each of the following sections analyze each of them in detail.</t>
 
-<section title="Inappropriate Default Timer Values in IPv6 Stateless Address Autoconfiguration (SLAAC)" anchor="timer-problem">
+<section title="Default Timer Values in IPv6 Stateless Address Autoconfiguration (SLAAC)" anchor="timer-problem">
 <t>Many protocols, from different layers, normally employ timers. The general logic is as follows:
 <list style="symbols">
 <t>A timer is set with a value that, under normal conditions, the timer does *not* go off.</t>
@@ -195,16 +197,16 @@ AdvDefaultLifetime: 3 * MaxRtrAdvInterval  (no mayor a 9000) = 900 (15 minutes)
 Current values:
 AdvDefaultLifetime: 3 * 600 = 1800 = 30 minutes
 -->
-<t><xref target="timers"/> of this document updates the SLAAC specification to employ more appropriate timer values.</t>
+<t><xref target="timers"/> of this document updates the SLAAC specification to employ shorter timer values.</t>
 </section>
 
 
-<section title="Inability of SLAAC Hosts to Recover from Stale Network Configuration Information" anchor="hosts-problem">
+<section title="Recovering from Stale Network Configuration Information" anchor="hosts-problem">
 <t>SLAAC hosts are unable to recover from stale network configuration information for a number of reasons:
 <list style="symbols">
-<t>Item "e)" of Section 5.5.3 of <xref target="RFC4862"/> specifies that an RA may never reduce the "RemainingLifetime" more than to two hours. If the RemainingLifetime of an address is smaller than 2 hours, then a Valid Lifetime smaller than 2 hours will be ignored. The Preferred Lifetime of an address can be reduced to any value to avoid the use of a stale prefix to be employed for new communications. However, this will not mitigate the problem that may arise when trying to communicate with the new "owners" of the stale prefix, since the stale prefix is likely to be considered "on-link".
+<t>Item "e)" of Section 5.5.3 of <xref target="RFC4862"/> specifies that an RA may never reduce the "RemainingLifetime" more than to two hours. If the RemainingLifetime of an address is smaller than 2 hours, then a Valid Lifetime smaller than 2 hours will be ignored. The Preferred Lifetime of an address can be reduced to any value to avoid the use of a stale prefix to be employed for new communications. 
 </t>
-<t>In the absence of explicit signalling from SLAAC routers (such as sending PIOs with a "Prefered Lifetime" set to 0), SLAAC hosts fail to recover from stale configuration information in a timely manner. This is exacerbated by the inappropriate timers employed for the lifetime of PIOs, as discussed in <xref target="timer-problem"/>. We stress that, as previously noted, explicit signaling (in the form of RAs containing a PIO for the stale prefix with a "Prefered Lifetime" of 0) can only partially mitigate the aforementioned problem.
+<t>In the absence of explicit signalling from SLAAC routers (such as sending PIOs with a "Prefered Lifetime" set to 0), SLAAC hosts fail to recover from stale configuration information in a timely manner. However, when a network element is able to explicitly signal the renumbering event, it will only be to "un-prefer" the stale prefix, but not to invalidate the prefix in question. Therefore, communication with the new "owners" of the stale prefix will not be possible, since the stale prefix will still be considered "on-link".
 </t>
 </list>
 </t>
@@ -218,18 +220,11 @@ AdvDefaultLifetime: 3 * 600 = 1800 = 30 minutes
 <t>However, as discussed in <xref target="hosts-problem"/>, PIOs with small Valid Lifetimes will not lower the Valid Lifetime to any value shorter than two hours (as per <xref target="RFC4862"/>). Therefore, even if a SLAAC router were to explicitly signal the network about the stale configuration information via RAs, such signaling would be mostly ignored.
 </t>
 
-<!--
-<t>In order to cope with the possibility of a SLAAC router crashing and rebooting without any state of the previously-advertised prefixes, a SLAAC router should record on stable storage the information of which prefixes were being advertised on which interfaces, such that upon reboots, such prefixes may be advertised with appropriate lifetimes (both "Preferred Lifetime" and "Valid Lifetime" set to 0) to cause hosts to remove any configuration information derived from previous announcements of such prefixes. 
-</t>
-<t>However, since it is impossible for a host to know whether such explicit signals will be received, they are not relieved from inferring changes in network configuration information, as discussed in <xref target="hosts-problem"/>.
-</t>
--->
-
 <t><xref target="sig-stale-config"/> updates the SLAAC specification such that routers explicitly notify SLAAC hosts about the stale network configuration information, and hosts can recover from it upon receipt of such notifications. <xref target="CPE"/> specifies the corresponding requirements for CPE routers.</t>
 </section>
 
-<section title="Under-specified Interaction Between DHCPv6-PD and SLAAC" anchor="dhcpv6-pd-slaac-problem">
-<t>While DHCPv6-PD is normally employed along with SLAAC, the interaction between the two protocols is largely unspecified. Not unusually, the two protocols are specified in two different software components with the interface between the two implemented by some sort of script that takes feeds the SLAAC implementation with values learned from DHCPv6-PD.</t>
+<section title="Interaction Between DHCPv6-PD and SLAAC" anchor="dhcpv6-pd-slaac-problem">
+<t>While DHCPv6-PD is normally employed along with SLAAC, the interaction between the two protocols is largely unspecified. Not unusually, the two protocols are specified in two different software components with the interface between the two implemented by some sort of script that feeds the SLAAC implementation with values learned from DHCPv6-PD.</t>
 
 <t>Quite frequently, the prefix lease time is fed as a constant value to the SLAAC router implementation, meaning that eventually the prefix lifetime advertised on the LAN side will span *past* the DHCPv6-PD lease time. This is clearly incorrect, since the SLAAC router implementation would be allowing the use of such prefixes for a longer time than it has been granted usage of those prefixes via DHCPv6-PD. </t>
 
@@ -252,7 +247,7 @@ AdvDefaultLifetime: 3 * 600 = 1800 = 30 minutes
 	</list>
 	</t>
 
-<t>The authors of this document understand that, for a number of reasons (such as the ones stated above), IPv6 deployments may employ dynamic prefixes, or there might be scenarios in which the dynamics of a network are such that the network exhibits the behaviour of dynamic prefixes. Rather than try to preclude how operators may run their networks, this document aims at improving network robustness in the deployed Internet.</t>
+<t>The authors of this document understand that, for a number of reasons (such as the ones stated above), IPv6 deployments may employ dynamic prefixes (even at the expense of the issues discussed in this document), and that there might be scenarios in which the dynamics of a network are such that the network exhibits the behaviour of dynamic prefixes. Rather than try to preclude how operators may run their networks, this document aims at improving network robustness in the deployed Internet.</t>
 </section>
 
     <section anchor="Solutions" title="Possible workarounds">
