@@ -266,17 +266,7 @@ AdvDefaultLifetime: 3 * 600 = 1800 = 30 minutes
 
 <section title="Router Configuration Variables" anchor="router-config">
 
-<t>The "default" value for the router configuration variable "MaxRtrAdvInterval" (Section 6.2.1 of <xref target="RFC4861"/> is changed to 300 seconds (5 minutes).</t>
-
-<t>As a result of this change, the default values for two other configuration variables are indirectly modified (since they are specified in relation with MaxRtrAdvInterval):
-<list style="symbols">
-<t>MinRtrAdvInterval: 0.33 * MaxRtrAdvInterval = 99 seconds</t>
-<t>AdvDefaultLifetime: 3 * MaxRtrAdvInterval = 900 seconds (15 minutes)</t>
-</list>
-</t>
-
-
-<t>Additionally, the default value for the "lifetime" parameters in PIOs is updated as follows:
+<t>The default value for the "lifetime" parameters in PIOs is updated as follows:
 
 <list>
 <t>AdvValidLifetime: AdvDefaultLifetime (which according to this specification defaults to 900 seconds / 15 minutes)</t>
