@@ -52,22 +52,19 @@ UTN-FRH</organization>
       </address>
     </author>
 
-<!--
-    <author fullname="J. Linkova" initials="J." surname="Linkova">
-      <organization abbrev="Google">Google</organization>
+<author initials="R." surname="Patterson" fullname="Richard Patterson">
+
+      <organization>Sky UK</organization>
 
       <address>
-        <postal>
-          <street>1600 Amphitheatre Parkway</street>
-          <city>Mountain View</city>
-          <region>CA 94043</region>
-          <country>USA</country>
-        </postal>
 
-        <email>furry@google.com</email>
+        <email>richard.patterson@sky.uk</email>
+
       </address>
+
     </author>
--->
+
+ 
 
     <date/>
 
