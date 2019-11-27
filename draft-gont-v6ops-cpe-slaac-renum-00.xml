@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+
+<?rfc subcompact="no" ?>
+<?rfc toc="yes" ?>
+<?rfc symrefs="yes" ?>
+<?rfc sortrefs="yes"?>
+<?rfc strict="no" ?>
+
+<rfc category="info"  ipr="trust200902"
+docName="draft-gont-v6ops-cpe-slaac-renum-00">
+  <front>
+    <title abbrev="Reaction to Renumbering Events">Improving the Reaction of Customer Edge Routers to Renumbering Events</title>
+
+
+    <author fullname="Fernando Gont" initials="F." surname="Gont">
+
+      <organization abbrev="SI6 Networks">SI6 Networks</organization>
+      <address>
+        <postal>
+          <street>Segurola y Habana 4310, 7mo Piso</street>
+<!--          <code>1706</code> -->
+          <city>Villa Devoto</city>
+          <region>Ciudad Autonoma de Buenos Aires</region>
+          <country>Argentina</country>
+        </postal>
+        <phone>+54 11 4650 8472</phone>
+        <email>fgont@si6networks.com</email>
+        <uri>https://www.si6networks.com</uri>
+       </address>
+    </author>
+
+
+    <author fullname="Jan Zorz" initials="J." surname="Zorz">
+
+<!--
+      <organization abbrev="SI6 Networks / UTN-FRH">SI6 Networks /
+UTN-FRH</organization>
+-->
+      <address>
+        <postal>
+          <street>Frankovo n. 165</street>
+<!--          <code>1706</code> -->
+          <city>Skofja Loka</city>
+<!--          <region>Ciudad Autonoma de Buenos Aires</region> -->
+          <country>Slovenia</country>
+        </postal>
+        <email>jan@go6.si</email>
+
+      </address>
+    </author>
+
+<author initials="R." surname="Patterson" fullname="Richard Patterson">
+
+      <organization>Sky UK</organization>
+
+      <address>
+
+        <email>richard.patterson@sky.uk</email>
+
+      </address>
+
+    </author>
+
+ 
+
+    <date/>
+
+    <area>Operations and Management</area>
+    <workgroup>IPv6 Operations Working Group (v6ops)</workgroup>
+
+<!-- [rfced] Please insert any keywords (beyond those that appear in
+the title) for use on http://www.rfc-editor.org/search.html. -->
+
+<keyword></keyword>
+
+
+
+    <abstract>
+      <t><!--A very common IPv6 deployment scenario is that in which a CPE router employs DHCPv6 Prefix Delegation to obtain an IPv6 prefix, and at least one prefix from within the leased prefix is advertised on a local network via SLAAC. -->In scenarios where network configuration information related to IPv6 prefixes becomes invalid without any explicit signaling of that condition (such as when a CPE crashes and reboots without knowledge of the previously-employed prefixes), hosts on the local network will continue using stale prefixes for an unacceptably long period of time, thus resulting in connectivity problems. This document specifies improvements to Customer Edge Routers that help mitigate the aforementioned problem for typical residential and small office scenarios.</t>
+    </abstract>
+  </front>
+  <middle>
+    <section anchor="intro" title="Introduction">
+<t>In scenarios where network configuration information related to IPv6 prefixes becomes invalid without any explicit signaling of that condition, nodes on the local network will continue using stale prefixes for an unacceptably long period of time, thus resulting in connectivity problems. This problem is documented in detail in <xref target="I-D.gont-v6ops-slaac-renum"/>.</t>
+
+<t>This document specifies improvements to Customer Edge Routers that help mitigate the aforementioned problem for residential or small office scenarios.
+</t>
+
+</section>
+
+   <section anchor="CPE" title="Improved CPE behavior">
+<t>This section specifies and clarifies requirements for CPE routers (particularly when they advertise with SLAAC <xref target="RFC4862"/> prefixes learned via DHCPv6-PD <xref target="RFC8415"/>) that can help mitigate the problem discussed in <xref target="intro"/>. This would obviously make robustness dependent on the CPE (on which the user or ISP may have no control), as opposed to the host itself.</t>
+
+<t>The updated behaviour is as follows:
+
+	<list style="symbols">
+		<t>CPE routers MUST signal stale configuration information as specified in <xref target="sig-stale-config"/></t>
+		<t>CPE routers MUST implement the DHCPv6-PD/SLAAC interface specified in <xref target="dhcpv6-pd-slaac"/>.</t>
+		<t>CPE routers SHOULD NOT automatically send DHCPv6-PD RELEASE messages upon reboot events. </t>
+	</list>
+</t>
+
+
+<section title="Interaction Between DHCPv6-PD and SLAAC" anchor="dhcpv6-pd-slaac">
+<t>The "Preferred Lifetime" and "Valid Lifetime" of PIOs <xref target="RFC4861"/> corresponding to prefixes learned via DHCPv6-PD MUST NOT span past the lease time of the DHCPv6-PD prefixes. This means that the advertised "Preferred Lifetime" and "Valid Lifetime" MUST be dynamically adjusted such that the advertised lifetimes never span past the lease time of the prefixes delegated via DHCPv6-PD.</t>
+
+
+<t>This is in line with these existing requirements from other specifications, which we reference here for clarity:
+	<list style="symbols">
+
+	<t><xref target="RFC8415"/> specifies, in Section 6.3, that "if the delegated prefix
+   or a prefix derived from it is advertised for stateless address
+   autoconfiguration [RFC4862], the advertised preferred and valid
+   lifetimes MUST NOT exceed the corresponding remaining lifetimes of
+   the delegated prefix."
+	</t>
+
+	</list>
+
+</t>
+
+<t>
+<list style="hanging">
+<t hangText="RATIONALE:">
+<list style="symbols">
+<t>The lifetime values employed for the "Preferred Lifetime" (AdvPreferredLifetime) and "Valid Lifetime" (AdvValidLifetime) should never be larger than the remaining lease time for the corresponding prefix (as learned via DHCPv6-PD).</t>
+<t>The lifetime values advertised for prefixes corresponding to a prefix leased via DHCPv6-PD should be dynamically updated (rather than static values), since otherwise the advertised lifetimes would eventually span past the DHCPv6-PD lease time.</t>
+</list>
+</t>
+</list>
+</t>
+</section>
+
+
+<section title="Signaling Stale Configuration Information" anchor="sig-stale-config">
+<t>In order to phase-out stale configuration information:
+
+	<list style="symbols">
+		<t>A CPE router sending RAs that advertise dynamically-learned prefixes (e.g. via DHCPv6-PD) on an interface MUST record, on stable storage, the list of prefixes being advertised on each network segment.</t>
+
+<t>Upon changes to the advertised prefixes, and after bootstrapping, the CPE router advertising prefix information via SLAAC should proceed as follows:
+			<list style="symbols">
+				<t>Any prefixes that were previously advertised via SLAAC, but that are not currently intended for address configuration, MUST be advertised with a PIO option with the "A" bit set to 1 and the "Valid Lifetime" and a "Preferred Lifetime" set to 0.
+				</t>
+				<t>Any prefixes that were previously advertised via SLAAC as "on-link", but that are not currently not considered "on-link", MUST be advertised with a PIO option with the "L" bit set to 1 and the "Valid Lifetime" and a "Preferred Lifetime" set to 0.</t>
+				<t>If both of the previous conditions are met (a prefix was previously advertised with both the "A" and "L" bits set, but is currently *not* intended for address configuration and is *not* considered on-link), the prefix MUST be advertised with a PIO option with both the "A" and "L" bits set to 1 and the "Valid Lifetime" and a "Preferred Lifetime" set to 0. That is. the advertisements of the previous two steps can be coalesced into a single one with both the "A" and "L" bits set.</t>
+<t>The aforementioned advertisement SHOULD be performed for at least the "Valid Lifetime" previously employed for such prefix. </t>
+			</list>
+		</t>
+	</list>
+</t>
+
+
+
+<t>The aforementioned improved behaviour assumes compliance with the following existing requirements from other specifications, which we reference here for clarity:
+	<list style="symbols">
+	<t><xref target="RFC7084"/> specifies (requirement LE-13, in Section 4.3) that when the delegated prefix changes (i.e., the current prefix is
+          replaced with a new prefix without any overlapping time period), "the IPv6 CE router MUST immediately advertise the
+          old prefix with a Preferred Lifetime of zero and a Valid
+          Lifetime of either a) zero or b) the lower of the current
+          Valid Lifetime and two hours (which must be decremented in
+          real time) in a Router Advertisement message as described in
+          Section 5.5.3, (e) of [RFC4862]"</t>
+
+	</list>
+
+</t>
+</section>
+
+
+
+
+    </section>
+
+    <section title="IANA Considerations">
+      <t>
+This document has no actions for IANA.
+</t>
+    </section>
+
+    <section title="Security Considerations">
+      <t>This document discusses a problem that may arise in scenarios where dynamic IPv6 prefixes are employed, and proposes improvements to Customer Edge Routers <xref target="RFC7084"/> to mitigate the problem for residential or small office scenarios. It does not introduce new security issues.</t>
+
+    </section>
+
+
+
+
+
+<section title="Acknowledgments">
+<t>The authors would lie to thank (in alphabetical order) Mikael Abrahamsson, Luis Balbinot, Brian Carpenter, Owen DeLong, Gert Doering, Steinar Haug, Nick Hilliard, Philip Homburg, Lee Howard, Christian Huitema, Ted Lemon, Albert Manfredi, Jordi Palet Martinez, Richard Patterson, Michael Richardson, Mark Smith, Tarko Tikan, and Ole Troan, for providing valuable comments on <xref target="I-D.gont-6man-slaac-renum"/>, on which this document is based.earlier versions of this document.</t>
+
+<t>Fernando would like to thank <!--Niloofar Adeli (Shatel, Iran), -->Alejandro D'Egidio and Sander Steffann for a discussion of these issues. Fernando would also like to thank Brian Carpenter who, over the years, has answered many questions and provided valuable comments that has benefited his protocol-related work.</t>
+
+
+    </section>
+
+  </middle>
+  <back>
+
+    <references title="Normative References">
+<!--	<?rfc include="reference.RFC.2119" ?> -->
+	<?rfc include="reference.RFC.8415" ?>
+<!--	<?rfc include="reference.RFC.8028" ?> -->
+	<?rfc include="reference.RFC.4861" ?>
+	<?rfc include="reference.RFC.4862" ?>
+<!--	<?rfc include="reference.RFC.4941" ?> -->
+<!--	<?rfc include="reference.RFC.8504" ?> -->
+	</references>
+
+
+
+
+
+    <references title="Informative References">
+
+<!--	<?rfc include="reference.RFC.2827" ?> -->
+<!--	<?rfc include="reference.RFC.5927" ?> -->
+<!--	<?rfc include="reference.RFC.6105" ?> -->
+<!--	<?rfc include="reference.RFC.6724" ?> -->
+	<?rfc include="reference.RFC.7084" ?>
+<!--	<?rfc include="reference.RFC.7113" ?> -->
+<!--	<?rfc include="reference.RFC.7721" ?> -->
+
+	<?rfc include="reference.I-D.gont-6man-slaac-renum" ?>
+	<?rfc include="reference.I-D.gont-v6ops-slaac-renum" ?>
+
+
+<!--
+	<reference anchor="GERMAN-DP" target="http://www.bfdi.bund.de/SharedDocs/Publikationen/Entschliessungssammlung/DSBundLaender/84DSK_EinfuehrungIPv6.pdf?__blob=publicationFile">
+		<front>
+			<title>Einfuhrung von IPv6 Hinweise fur Provider im Privatkundengeschaft und Herstellere</title>
+
+    <author>
+		<organization>BFDI</organization>
+    </author>  
+
+			<date month="November" year="2012"/>
+		</front>
+		<seriesInfo name="Entschliessung der 84. Konferenz der Datenschutzbeauftragten des Bundes und der Lander" value="am 7./8. November 2012 in Frankfurt (Oder)"/>
+	</reference>
+-->
+<!--
+
+
+	<reference anchor="FRITZ" target="http://blog.si6networks.com/2016/02/quiz-weird-ipv6-traffic-on-local-network.html">
+		<front>
+			<title>Quiz: Weird IPv6 Traffic on the Local Network (updated with solution)</title>
+
+
+    <author fullname="Fernando Gont" initials="F." surname="Gont">
+
+      <organization abbrev="SI6 Networks / UTN-FRH">SI6 Networks</organization>
+      <address>
+        <postal>
+          <street>Segurola y Habana 4310, 7mo Piso</street>
+
+          <city>Villa Devoto</city>
+          <region>Ciudad Autonoma de Buenos Aires</region>
+          <country>Argentina</country>
+        </postal>
+        <phone>+54 11 4650 8472</phone>
+        <email>fgont@si6networks.com</email>
+        <uri>https://www.si6networks.com</uri>
+       </address>
+    </author>
+
+			<date month="February" year="2016"/>
+		</front>
+		<seriesInfo name="SI6 Networks" value="Blog"/>
+	</reference>
+-->
+
+
+<!--
+	<reference anchor="RIPE-690" target="https://www.ripe.net/publications/docs/ripe-690">
+		<front>
+			<title>Best Current Operational Practice for Operators: IPv6 prefix assignment for end-users - persistent vs non-persistent, and what size to choose</title>
+
+
+    <author fullname="Jan Zorz" initials="J." surname="Zorz">
+
+    </author>
+
+
+    <author fullname="Sander Steffannz" initials="S." surname="Zorz">
+
+    </author>
+    <author fullname="Primoz Drazumeric" initials="P." surname="Drazumeric">
+
+    </author>
+    <author fullname="Mark Townsley" initials="M." surname="Townsley">
+
+    </author>
+    <author fullname="Andrew Alston" initials="J." surname="Alston">
+
+    </author>
+    <author fullname="Gert Doering" initials="G." surname="Doering">
+
+    </author>
+    <author fullname="Jordi Palet" initials="J." surname="Palet">
+
+    </author>
+    <author fullname="Jen Linkova" initials="J." surname="Linkova">
+
+    </author>
+
+
+    <author fullname="Luis Balbinot" initials="L." surname="Balbinot">
+
+    </author>
+
+    <author fullname="Kevin Meynell" initials="K." surname="Meynell">
+
+    </author>
+
+
+    <author fullname="Lee Howard" initials="L." surname="Howard">
+
+    </author>
+
+
+
+
+
+
+			<date month="October" year="2017"/>
+		</front>
+		<seriesInfo name="RIPE" value="690"/>
+	</reference>
+-->
+
+
+<!--
+	<reference anchor="UK-NOF" target="https://indico.uknof.org.uk/event/41/contributions/542/attachments/712/866/bcop-ipv6-prefix-v9.pdf">
+		<front>
+			<title>IPv6 Deployment Survey (Residential/Household Services) How IPv6 is being deployed?</title>
+
+
+    <author fullname="Jordi Palet" initials="J." surname="Palet">
+
+    </author>
+
+
+			<date month="January" year="2018"/>
+		</front>
+		<seriesInfo name="UK NOF" value="39"/>
+	</reference>
+-->
+
+
+    </references>
+
+
+
+
+
+
+
+  </back>
+</rfc>
+<!--
+Local Variables:
+mode:xml
+End:
+=-->
