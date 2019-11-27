@@ -87,7 +87,7 @@ the title) for use on http://www.rfc-editor.org/search.html. -->
 <t>IPv6 network renumbering is expected to take place in a planned manner, with old/stale prefixes being phased-out via reduced prefix lifetimes while new prefixes (with normal lifetimes) are introduced. However, there are a number of scenarios that may lead to the so-called "flash-renumbering" events, where the prefix being employed on a network suddenly becomes invalid and replaced by a new prefix <xref target="I-D.gont-v6ops-slaac-renum"/>.  In such scenarios, hosts on the local network will continue using stale prefixes for an unacceptably long period of time, thus resulting in connectivity problems. <xref target="I-D.gont-v6ops-slaac-renum"/> discusses this problem in detail, while this document focuses on the protocol aspects of this problem.</t>
 
 
-<t>In some scenarios, the local router producing the network renumbering event may try to deprecate the currently-employed prefixes (thus explicitly signaling the network about the renumbering event), whereas in other scenarios it may be unaware about the renumbering event and thus unable singal hosts about it.</t>
+<t>In some scenarios, the local router producing the network renumbering event may try to deprecate the currently-employed prefixes (thus explicitly signaling the network about the renumbering event), whereas in other scenarios it may be unaware about the renumbering event and thus unable signal hosts about it.</t>
 
 
 <t>From the perspective of a SLAAC host, there are two different (but related) problems to be solved:
@@ -125,13 +125,13 @@ the title) for use on http://www.rfc-editor.org/search.html. -->
 </list>
 </t>
 
-<t>This means that, in the abscence of explicit signaling by a SLAAC router to deprecate a prefix, it will take a host 7 days (one week) to un-prefer the corresponding addresses, and 30 days (one month) to eventually remove any addresses configured for the stale prefix. Clearly, for any practical purposes, employing such long default values is equivalent of not using any timers at all, since taking 7 days or 30 days (respectively) to recover from a network problem is simply unacceptable.</t>
+<t>This means that, in the absence of explicit signaling by a SLAAC router to deprecate a prefix, it will take a host 7 days (one week) to un-prefer the corresponding addresses, and 30 days (one month) to eventually remove any addresses configured for the stale prefix. Clearly, for any practical purposes, employing such long default values is equivalent of not using any timers at all, since taking 7 days or 30 days (respectively) to recover from a network problem is simply unacceptable.</t>
 
-<t>Use of more appropriate timers in Router Advertisement messages can help limit the amount of time that hosts will maintain stale configuration information. Additionally, hosts are normally in a postition to infer that a prefix has become invalid -- for example, if a given router ceases to advertise an existing prefix and at the same time starts to advertise a new prefix.</t>
+<t>Use of more appropriate timers in Router Advertisement messages can help limit the amount of time that hosts will maintain stale configuration information. Additionally, hosts are normally in a position to infer that a prefix has become invalid -- for example, if a given router ceases to advertise an existing prefix and at the same time starts to advertise a new prefix.</t>
 
 <t><xref target="router-config"/> recommends the use of more appropriate lifetimes for Prefix Information Options (PIOs), while <xref target="hosts-config"/> proposes to cap the accepted Valid Lifetime and Preferred Lifetime values at hosts, such that more appropriate values are employed even in the presence of legacy routers.</t>
 
-<t><xref target="stale-config"/> specifies a local policy that SLAAC hosts can implement to heuristically infer that network configuration information has changed, such that stale confifiguration can be phased out.</t>
+<t><xref target="stale-config"/> specifies a local policy that SLAAC hosts can implement to heuristically infer that network configuration information has changed, such that stale configuration can be phased out.</t>
 </section>
 
 
@@ -144,7 +144,7 @@ the title) for use on http://www.rfc-editor.org/search.html. -->
 </list>
 </t>
 
-<t>In the abscence of RAs that include PIOs that would reduce the Valid Lifetime and Preferred Lifetime of a prefix, hosts would normally employ the lifetime values from PIO option of the last received RA messages. Since the network could be partitioned for an arbitrarily large amount fo time, a router would need to try to "unprefer" a prefix for the amount of time employed for the "Preferred Lifetime", and try to invalidate the prefix for the amount of time employed for the "Valid Lifetime" (see Section 12 of <xref target="RFC4861"/>). 
+<t>In the absence of RAs that include PIOs that would reduce the Valid Lifetime and Preferred Lifetime of a prefix, hosts would normally employ the lifetime values from PIO option of the last received RA messages. Since the network could be partitioned for an arbitrarily large amount fo time, a router would need to try to "unprefer" a prefix for the amount of time employed for the "Preferred Lifetime", and try to invalidate the prefix for the amount of time employed for the "Valid Lifetime" (see Section 12 of <xref target="RFC4861"/>). 
 </t>
 <t>
 <list style="hanging">
@@ -238,7 +238,7 @@ A SLAAC router will periodically refresh the Preferred Lifetime and the Valid Li
 </section>  <!-- timers -->
 
 
-<section title="Updated Processing of Prefix Information OPtions" anchor="sig-stale-config">
+<section title="Updated Processing of Prefix Information Options" anchor="sig-stale-config">
 
 <t>The entire item "e)" (pp. 19-20) from Section 5.5.3 of <xref target="RFC4862"/> is replaced with the following text:
 <list style="hanging">
@@ -571,7 +571,7 @@ This document has no actions for IANA.
 		<t>It assumes that the CPE enforces ingress/egress filtering <xref target="RFC2827"/>. While this is desirable behaviour, it cannot be relied upon.</t>
 		<t>It assumes that if the CPE enforces ingress/egress filtering, the CPE will signal the packet drops to the sending node with ICMPv6 Type 1 (Destination Unreachable) Code 5 (Source address failed ingress/egress policy) error messages. While this may be desirable, <xref target="RFC2827"/> does not suggest signaling the packet drops with ICMPv6 error messages, let alone the use of specific error messages (such as Type 1 Code 5) as suggested.</t>
 		<t>ICMPv6 Type 1 Code 5 could be interpreted as the employed address to be stale, but also as a selected route being inappropriate/suboptimal. If the later, un-preferring addresses or removing addresses upon receipt of these error messages would be inappropriate.</t>
-		<t>Reacting to these error messages would create a new attack vector that could be explited from remote networks. This is of particular concern since ICMP-based attacks do not even require that the Source Address of the attack packets be spoofed <xref target="RFC5927"/>.</t>
+		<t>Reacting to these error messages would create a new attack vector that could be exploited from remote networks. This is of particular concern since ICMP-based attacks do not even require that the Source Address of the attack packets be spoofed <xref target="RFC5927"/>.</t>
 	</list>
 </t>
 </section>
