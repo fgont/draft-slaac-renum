@@ -1,0 +1,523 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+
+<?rfc subcompact="no" ?>
+<?rfc toc="yes" ?>
+<?rfc symrefs="yes" ?>
+<?rfc sortrefs="yes"?>
+<?rfc strict="no" ?>
+
+<rfc category="info"  ipr="trust200902"
+docName="draft-ietf-v6ops-slaac-renum-02">
+  <front>
+    <title abbrev="Reaction to Renumbering Events">Reaction of Stateless Address Autoconfiguration (SLAAC) to Flash-Renumbering Events</title>
+
+
+    <author fullname="Fernando Gont" initials="F." surname="Gont">
+
+      <organization abbrev="SI6 Networks">SI6 Networks</organization>
+      <address>
+        <postal>
+          <street>Segurola y Habana 4310, 7mo Piso</street>
+<!--          <code>1706</code> -->
+          <city>Villa Devoto</city>
+          <region>Ciudad Autonoma de Buenos Aires</region>
+          <country>Argentina</country>
+        </postal>
+<!--        <phone>+54 11 4650 8472</phone> -->
+        <email>fgont@si6networks.com</email>
+        <uri>https://www.si6networks.com</uri>
+       </address>
+    </author>
+
+
+     <author fullname="Jan Zorz" initials="J." surname="Zorz">
+
+
+      <organization abbrev="Go6 Institute">Go6 Institute</organization>
+
+      <address>
+        <postal>
+          <street>Frankovo naselje 165</street>
+         <code>4220</code> 
+          <city>Skofja Loka</city>
+<!--          <region>Ciudad Autonoma de Buenos Aires</region> -->
+          <country>Slovenia</country>
+        </postal>
+        <email>jan@go6.si</email>
+        <uri>https://www.go6.si</uri>
+      </address>
+    </author>
+
+
+<author initials="R." surname="Patterson" fullname="Richard Patterson">
+
+      <organization>Sky UK</organization>
+
+      <address>
+
+        <email>richard.patterson@sky.uk</email>
+
+      </address>
+
+    </author>
+
+ 
+
+    <date/>
+
+    <area>Operations and Management</area>
+    <workgroup>IPv6 Operations Working Group (v6ops)</workgroup>
+
+<!-- [rfced] Please insert any keywords (beyond those that appear in
+the title) for use on http://www.rfc-editor.org/search.html. -->
+
+<keyword></keyword>
+
+
+
+    <abstract>
+      <t><!--A very common IPv6 deployment scenario is that in which a CPE router employs DHCPv6 Prefix Delegation to obtain an IPv6 prefix, and at least one prefix from within the leased prefix is advertised on a local network via SLAAC. -->In scenarios where network configuration information related to IPv6 prefixes becomes invalid without any explicit signaling of that condition (such as when a CPE crashes and reboots without knowledge of the previously-employed prefixes), nodes on the local network will continue using stale prefixes for an unacceptably long time, thus resulting in connectivity problems. This document documents this issue and discusses operational workarounds that may help to improve network robustness. Additionally, it highlights areas where further work may be needed.</t>
+    </abstract>
+  </front>
+  <middle>
+    <section anchor="intro" title="Introduction">
+<t>IPv6 largely assumes prefix stability, with network renumbering only taking place in a planned manner, with old/stale prefixes being phased-out via reduced prefix lifetimes, and new prefixes (with longer lifetimes) being introduced at the same time. However, there several scenarios that may lead to the so-called "flash-renumbering" events, where the prefix employed by a network suddenly becomes invalid and replaced by a new prefix. In some of these scenarios, the local router producing the network renumbering event may try to deprecate the currently-employed prefixes (by explicitly signaling the network about the renumbering event), whereas in other scenarios it may be unable to do so.</t>
+
+<t>In scenarios where network configuration information related to IPv6 prefixes becomes invalid without any explicit signaling of that condition, nodes on the local network will continue using stale prefixes for an unacceptably long period of time, thus resulting in connectivity problems.</t>
+
+      <t>Scenarios where this problem may arise include, but are not limited to, the following:
+
+<list style="symbols">
+
+<t>The most common IPv6 deployment scenario for residential or small office networks is that in which a CPE router employs DHCPv6 Prefix Delegation (DHCPv6-PD) <xref target="RFC8415"/> to request a prefix from an Internet Service Provider (ISP), and a sub-prefix of the leased prefix is advertised on the LAN-side of the CPE router via Stateless Address Autoconfiguration (SLAAC) <xref target="RFC4862"/>.
+In scenarios where the CPE router crashes and reboots, the CPE may obtain (via DHCPv6-PD) a different prefix from the one previously
+leased, and therefore advertise (via SLAAC) the new prefix on the LAN side. Hosts will typically configure addresses for the new prefix, but will normally retain and actively employ the addresses configured for the previously-advertised prefix, since their associated Preferred Lifetime and Valid Lifetime allow them to do so.</t>
+
+<t>A switch-port the host is connected to may be moved to another subnet
+      (VLAN) as a result of manual switch-port reconfiguration or 802.1x
+      re-authentication.  In particular, there has been evidence that
+      some 802.1x supplicants do not reset network settings after
+      successful 802.1x authentication.  So if a host had failed 802.1x
+      authentication for some reason, was placed in a "quarantine" VLAN
+      and then got successfully authenticated later on, it might end up
+      having IPv6 addresses from both old ("quarantine") and new VLANs.
+</t>
+
+<t>During the planned network renumbering, a router may be configured to
+      send an RA with the Preferred Lifetime for the "old" Prefix Information Option (PIO) set to zero
+      and the new PIO having non-zero Preferred Lifetime.  However, due
+      to unsolicited RAs being sent as all-hosts multicast and multicast being rather unreliable on busy wifi networks, the RA
+      may not be received by a host (or set of hosts).
+</t>
+
+<t>Automated device config management system performs periodic config
+pushes to network devices.  If such a push results in
+      changing the subnet configured on a particular network, hosts
+      attached to that network would not get notified about the subnet
+      change, and their addresses from the "old" prefix will not be
+      deprecated.  A related scenario is the incorrect network renumbering where a network administrator renumbers a network by simply
+      removing the "old" prefix from the configuration and configuring a
+      new prefix instead.
+</t>
+
+
+</list>
+</t>
+
+<t>
+Lacking any explicit signaling to deprecate the previously-advertised prefixes, hosts may continue to employ the previously-configured addresses, which will typically result in packets being blackholed -- whether because of egress-filtering by the CPE or ISP, or packets being discarded or routed elsewhere.
+</t>
+
+<t>We note that the default values for the "Valid Lifetime" and "Preferred Lifetime" of PIOs, as specified in <xref target="RFC4861"/>, are:
+
+<list style="symbols">
+<t>Valid Lifetime (AdvValidLifetime): 2592000 seconds (30 days)</t>
+<t>Preferred Lifetime (AdvPreferredLifetime): 604800 seconds (7 days)</t>
+
+</list>
+</t>
+
+<t>This means that in the aforementioned scenarios, the stale addresses would be retained and also actively employed for new communications instances for an unacceptably long period of time (one month, and one week, respectively), leading to interoperability problems, instead of hosts transitioning to the newly-advertised prefix(es) in a timelier manner.</t>
+
+<t>Some devices have implemented ad-hoc mechanisms to address this problem, such as sending RAs to invalidate apparently-stale prefixes when the device receives any packets employing a source address from a prefix not currently advertised for address configuration on the local network <xref target="FRITZ"/>. However, this may introduce other interoperability problems, particularly in multihomed/multiprefix scenarios. This is a clear indication that advice in this area is warranted.</t>
+
+
+<t>Unresponsiveness to these "flash-renumbering" events is caused by the inability of the network to deprecate stale information, as well as by the inability of hosts to react to network configuration changes in a timelier manner. Clearly, it would be desirable that these flash-renumbering scenarios do not occur, and that, when they do occur, that hosts are explicitly notified of their occurrence. However, for robustness reasons, it is paramount for hosts to be able to recover from stale configuration information even when these flash-renumbering events occur and the network is unable to explicitly notify hosts about such conditions.
+</t>
+<t><xref target="problem"/> analyzes this problem in more detail. <xref target="Solutions"/> describes possible operational mitigations. <xref target="futurework"/> describes possible future work to mitigate the aforementioned problem.</t>
+</section>
+
+<!--
+	<section title="Terminology" anchor="term">
+
+        <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL",
+        "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY",
+        and "OPTIONAL" in this document are to be interpreted as
+        described in 
+        <xref target='RFC2119' />.</t>
+</section>
+
+-->
+
+<section title="Analysis of the Problem" anchor="problem">
+<t>As noted in <xref target="intro"/>, the problems discussed in this document are exacerbated by a number of different default parameters and behaviours. The following sections analyze each of them in detail.</t>
+
+
+    <section anchor="ops" title="Use of Dynamic Prefixes">
+	<t>In the residential or small office scenario, the problem discussed in this document would be avoided if DHCPv6-PD would lease "stable" prefixes. However, a recent survey <xref target="UK-NOF"/> indicates that 37% of the responding ISPs employ dynamic prefixes. That is, dynamic IPv6 prefixes are an operational reality.</t>
+
+<t>Deployment reality aside, there are a number of possible issues associated with stable prefixes:
+	<list style="symbols">
+		<t>Provisioning systems may be unable to deliver stable IPv6 prefixes.</t>
+
+		<t>While there is a range of information that may be employed to correlate network activity <xref target="RFC7721"/>, the use of stable prefixes clearly simplifies network activity correlation, and may essentially render features such as "temporary addresses" <xref target="RFC4941"/> irrelevant. </t>
+
+		<t>There may be existing advice for ISPs to deliver dynamic IPv6 prefixes *by default* (see e.g. <xref target="GERMAN-DP"/>) over privacy concerns associated with stable prefixes.</t>
+	</list>
+	</t>
+
+<t>For a number of reasons (such as the ones stated above), IPv6 deployments may employ dynamic prefixes (even at the expense of the issues discussed in this document), and that there might be scenarios in which the dynamics of a network are such that the network exhibits the behaviour of dynamic prefixes. Rather than trying to regulate how operators may run their networks, this document aims at improving network robustness in the deployed Internet.</t>
+</section>
+
+
+<section title="Default Timer Values in IPv6 Stateless Address Autoconfiguration (SLAAC)" anchor="timer-problem">
+<t>Many protocols, from different layers, normally employ timers. The general logic is as follows:
+<list style="symbols">
+<t>A timer is set with a value such that, under normal conditions, the timer does *not* go off.</t>
+<t>Whenever a fault condition arises, the timer goes off, and the protocol can perform fault recovery</t>
+</list>
+</t>
+
+<t>One use of timers is when implementing reliability mechanisms where a packet is
+transmitted, and, unless a response is received, a timer will fire to
+trigger retransmission of the original packet.</t>
+
+<t>For obvious reasons, the whole point of using timers in this way is
+that, in problematic scenarios, they trigger some recovery action.</t>
+<t>However, IPv6 SLAAC employs, for PIOs, these default values:
+<list style="symbols">
+<t>Preferred Lifetime (AdvPreferredLifetime): 604800 seconds (7 days)</t>
+<t>Valid Lifetime (AdvValidLifetime): 2592000 seconds (30 days)</t>
+</list>
+</t>
+
+<t>Under normal network conditions, these timers will be reset/refreshed to the default values. However, under problematic circumstances, such as where the corresponding network information has become stale without any explicit signal from the network (as described in <xref target="intro"/>), it will take a host 7 days (one week) to deprecate the corresponding addresses, and 30 days (one month) to eventually invalidate and remove any addresses configured for the stale prefix.</t>
+
+<!--
+<t>Clearly, for any practical purposes, employing such long default values is equivalent of not using any timers at all, since taking 7 days or 30 days (respectively) to recover from a network problem is simply unacceptable.</t>
+-->
+
+
+<!--
+
+
+MaxRtrAdvInterval: 300 seconds (5 minutes)
+MinRtrAdvInterval: 0.33 * MaxRtrAdvInterval = 99 seconds
+AdvDefaultLifetime: 3 * MaxRtrAdvInterval  (no mayor a 9000) = 900 (15 minutes)
+*********
+
+Current values:
+AdvDefaultLifetime: 3 * 600 = 1800 = 30 minutes
+-->
+<!-- <t><xref target="timers"/> of this document updates the SLAAC specification to employ shorter timer values.</t> -->
+</section>
+
+
+<section title="Recovering from Stale Network Configuration Information" anchor="hosts-problem">
+<t>SLAAC hosts are unable to recover from stale network configuration information for a number of reasons:
+<list style="symbols">
+<t>Item "e)" of Section 5.5.3 of <xref target="RFC4862"/> specifies that an RA may never reduce the "RemainingLifetime" to less than two hours. If the RemainingLifetime of an address is smaller than 2 hours, then a Valid Lifetime smaller than 2 hours will be ignored. The Preferred Lifetime of an address can be reduced to any value to avoid using a stale prefix for new communications. 
+</t>
+<t>In the absence of explicit signalling from SLAAC routers (such as sending PIOs with a "Preferred Lifetime" set to 0), SLAAC hosts fail to recover from stale configuration information in a timely manner. However, when a network element is able to explicitly signal the renumbering event, it will only be able to deprecate the stale prefix, but not to invalidate the prefix in question. Therefore, communication with the new "owners" of the stale prefix will not be possible, since the stale prefix will still be considered "on-link".
+</t>
+</list>
+</t>
+<!--
+<t><xref target="stale-config"/> of this document specifies a local policy that SLAAC hosts can implement to heuristically infer that network configuration information has changed and recover from stale prefixes.</t>
+-->
+</section>
+
+<section title="Lack of Explicit Signaling about Stale Information" anchor="cpe-problem">
+<t>Whenever prefix information has changed, a SLAAC router should not only advertise the new information, but should also advertise the
+stale information with appropriate lifetime values (both "Preferred
+Lifetime" and "Valid Lifetime" set to 0). This would provide explicit
+signaling to SLAAC hosts to remove the stale information (including
+configured addresses and routes).
+
+ However, in scenarios such as when a CPE router crashes and reboots, the CPE router may have no knowledge about the previously-advertised prefixes, and thus may be unable to advertise them with appropriate lifetimes (in order to deprecate them).
+</t>
+<t>However, we note that, as discussed in <xref target="hosts-problem"/>, PIOs with small Valid Lifetimes will not lower the Valid Lifetime to any value shorter than two hours (as per <xref target="RFC4862"/>). Therefore, even if a SLAAC router were to explicitly signal the network about the stale configuration information via RAs, such signaling would be mostly ignored.
+</t>
+
+<!--
+<t><xref target="sig-stale-config"/> updates the SLAAC specification such that routers explicitly notify SLAAC hosts about the stale network configuration information, and hosts can recover from it upon receipt of such notifications. <xref target="CPE"/> specifies the corresponding requirements for CPE routers.</t>
+-->
+</section>
+
+<section title="Interaction Between DHCPv6-PD and SLAAC" anchor="dhcpv6-pd-slaac-problem">
+<t>While DHCPv6-PD is normally employed along with SLAAC, the interaction between the two protocols is largely unspecified. Not unusually, the two protocols are implemented in two different software components with the interface between the two implemented by some sort of script that feeds the SLAAC implementation with values learned from DHCPv6-PD.</t>
+
+<t>At times, the prefix lease time is fed as a constant value to the SLAAC router implementation, meaning that, eventually, the prefix lifetime advertised on the LAN side will span *past* the DHCPv6-PD lease time. This is clearly incorrect, since the SLAAC router implementation would be allowing the use of such prefixes for a longer time than it has been granted usage of those prefixes via DHCPv6-PD. </t>
+
+<!--
+<t><xref target="dhcpv6-pd-slaac"/> of this document specifies this aspect of the interaction between DHCPv6-PD and SLAAC.</t>
+-->
+</section>
+
+
+</section>
+
+
+    <section anchor="Solutions" title="Operational Mitigations">
+      <t>The following subsections discuss possible operational workarounds for the aforementioned problems. <!--  <xref target="host-side"/> specifies modifications to SLAAC which include the use of more appropriate lifetime values and a mechanism for hosts to infer when a previously-advertised prefix has become stale. This modification leads to more robust behaviour even for existing deployments. --></t>
+
+<section title="Stable Prefixes">
+<t>As noted in <xref target="ops"/>, the use of stable prefixes would eliminate the issue in *some* of the scenarios discussed in <xref target="intro"/> of this document, such as the typical home network deployment. However, even in such scenarios, there might be reasons for which an administrator may want or may need to employ dynamic prefixes</t>
+</section>
+
+      <section title="SLAAC Parameter Tweaking" anchor="host-side">
+<t>An operator may wish to override some SLAAC parameters such that, under normal circumstances (including some packet loss), the timers will be refreshed/reset, but in the presence of network faults (such as network configuration information becoming stale without explicit signaling), the timers go off and trigger some fault recovering action (such as deprecating the corresponding addresses and subsequently invalidating/removing them).
+</t>
+
+<t>
+The following router configuration variables (corresponding to the "lifetime" parameters in PIOs) could be overridden as follows:
+
+<list>
+<t>AdvValidLifetime: 48 * AdvDefaultLifetime (86400 seconds)</t>
+<t>AdvPreferredLifetime: AdvDefaultLifetime (1800 seconds)</t>
+</list>
+</t>
+
+
+<t>
+<list style="hanging">
+<t hangText="NOTES:"><vspace blankLines="0" />
+A CPE router advertising a sub-prefix of a prefixed leased via DHCPv6-PD will periodically refresh the Preferred Lifetime and the Valid Lifetime of an advertised prefix to AdvPreferredLifetime and AdvValidLifetime, respectively, as long as the resulting lifetime of the corresponding prefixes does not extend past the DHCPv6-PD lease time.
+</t>
+</list>
+</t>
+
+
+
+
+<t>
+<list style="hanging">
+<t hangText="RATIONALE:">
+<list style="symbols">
+<t>In the context of <xref target="RFC8028"/>, where it is clear that use of addresses configured for a given prefix is tied to using the next-hop router that advertised the prefix, it does not make sense for the "Preferred Lifetime" of a PIO to be larger than the "Router Lifetime" (AdvDefaultLifetime) of the corresponding Router Advertisement messages. The "Valid Lifetime" is set to a much larger value to cope with transient network problems.</t>
+<!--
+<t>As a result, this document updates <xref target="RFC4861"/> such that the default Valid Lifetime (AdvValidLifetime) and Preferred Lifetime (AdvPreferredLifetime) of PIOs are specified as a function of the "Router Lifetime" (AdvDefaultLifetime) of Router Advertisement messages.</t>
+-->
+
+<t>Lacking RAs that refresh information, addresses configured for advertised prefixes become deprecated in a timelier manner, and thus Rule 3 of <xref target="RFC6724"/> causes other configured addresses (if available) to be used instead.</t>
+
+<t>We note that lowering the default values for the "Valid Lifetime" helps reduce the amount of time a host may maintain stale information and the amount of time an advertising router would need to advertise stale prefixes to deprecate them, while reducing the default "Preferred Lifetime" would reduce the amount of time it takes for a host to prefer other working prefixes (see Section 12 of <xref target="RFC4861"/>). However, while the aforementioned values are an improvement over the default values specified in <xref target="RFC4861"/>, they will not lead to a timely recovery from the problem discussed in this document.</t>
+</list>
+</t>
+</list>
+</t>
+</section>
+
+</section>
+
+
+    <section title="Future Work" anchor="futurework">
+      <t>Improvement in Customer Edge Routers <xref target="RFC7084"/> such that they can signal the network about stale prefixes and deprecate them accordingly can help mitigate the problem discussed in this document for the "home network" scenario. Such work is currently being pursued in <xref target="I-D.ietf-v6ops-cpe-slaac-renum"/>.</t>
+
+<t>Improvements in the SLAAC protocol <xref target="RFC4862"/> and other algorithms such as "Default Address Selection for IPv6" <xref target="RFC6724"/> would help improve network robustness. Such work is currently being pursued in <xref target="I-D.ietf-6man-slaac-renum"/>.</t>
+
+<t>The aforementioned work is considered out of the scope of this present document, which only focuses on documenting the problem and discussing operational mitigations.</t>
+
+    </section>
+
+
+    <section title="IANA Considerations">
+      <t>
+This document has no actions for IANA.
+</t>
+    </section>
+
+    <section title="Security Considerations">
+      <t>This document discusses a problem that may arise in scenarios where flash-renumbering events occur, and proposes workarounds to mitigate the aforementioned problems. This document does not introduce any new security issues.</t>
+
+    </section>
+
+
+
+<section title="Acknowledgments">
+<t>The authors would lie to thank (in alphabetical order) Mikael Abrahamsson, Luis Balbinot, Brian Carpenter, Tassos Chatzithomaoglou, Uesley Correa, Owen DeLong, Gert Doering, Fernando Frediani, Steinar Haug, Nick Hilliard, Philip Homburg, Lee Howard, Christian Huitema, Warren Kumari, Albert Manfredi, Jordi Palet Martinez, Richard Patterson, Michael Richardson, Mark Smith, Tarko Tikan, and Ole Troan, for providing valuable comments on <xref target="I-D.gont-6man-slaac-renum"/>, on which this document is based.</t>
+
+<t>Fernando would like to thank <!--Niloofar Adeli (Shatel, Iran), -->Alejandro D'Egidio and Sander Steffann for a discussion of these issues. Fernando would also like to thank Brian Carpenter who, over the years, has answered many questions and provided valuable comments that has benefited his protocol-related work.</t>
+
+      <t>The problem discussed in this document has been previously documented by Jen Linkova in <xref target="I-D.linkova-6man-default-addr-selection-update"/>, and also in <xref target="RIPE-690"/>. <xref target="intro"/> borrows text from <xref target="I-D.linkova-6man-default-addr-selection-update"/>, authored by Jen Linkova.</t>
+    </section>
+
+  </middle>
+  <back>
+
+    <references title="Normative References">
+<!--	<?rfc include="reference.RFC.2119" ?> -->
+	<?rfc include="reference.RFC.8415" ?>
+	<?rfc include="reference.RFC.8028" ?>
+	<?rfc include="reference.RFC.4861" ?>
+	<?rfc include="reference.RFC.4862" ?>
+	<?rfc include="reference.RFC.4941" ?>
+<!--	<?rfc include="reference.RFC.8504" ?> -->
+	</references>
+
+
+
+
+
+    <references title="Informative References">
+
+<!--	<?rfc include="reference.RFC.2827" ?> -->
+<!--	<?rfc include="reference.RFC.5927" ?> -->
+<!--	<?rfc include="reference.RFC.6105" ?> -->
+	<?rfc include="reference.RFC.6724" ?>
+	<?rfc include="reference.RFC.7084" ?>
+<!--	<?rfc include="reference.RFC.7113" ?> -->
+	<?rfc include="reference.RFC.7721" ?>
+	<?rfc include="reference.I-D.linkova-6man-default-addr-selection-update" ?>
+	<?rfc include="reference.I-D.ietf-6man-slaac-renum" ?>
+	<?rfc include="reference.I-D.gont-6man-slaac-renum" ?>
+	<?rfc include="reference.I-D.ietf-v6ops-cpe-slaac-renum" ?> 
+
+
+	<reference anchor="GERMAN-DP" target="http://www.bfdi.bund.de/SharedDocs/Publikationen/Entschliessungssammlung/DSBundLaender/84DSK_EinfuehrungIPv6.pdf?__blob=publicationFile">
+		<front>
+			<title>Einfuhrung von IPv6 Hinweise fur Provider im Privatkundengeschaft und Herstellere</title>
+
+    <author>
+		<organization>BFDI</organization>
+    </author>  
+
+			<date month="November" year="2012"/>
+		</front>
+		<seriesInfo name="Entschliessung der 84. Konferenz der Datenschutzbeauftragten des Bundes und der Lander" value="am 7./8. November 2012 in Frankfurt (Oder)"/>
+	</reference>
+
+
+	<reference anchor="FRITZ" target="https://www.si6networks.com/2016/02/16/quiz-weird-ipv6-traffic-on-the-local-network-updated-with-solution/">
+		<front>
+			<title>Quiz: Weird IPv6 Traffic on the Local Network (updated with solution)</title>
+
+
+    <author fullname="Fernando Gont" initials="F." surname="Gont">
+
+      <organization abbrev="SI6 Networks / UTN-FRH">SI6 Networks</organization>
+      <address>
+        <postal>
+          <street>Segurola y Habana 4310, 7mo Piso</street>
+<!--          <code>1706</code> -->
+          <city>Villa Devoto</city>
+          <region>Ciudad Autonoma de Buenos Aires</region>
+          <country>Argentina</country>
+        </postal>
+        <phone>+54 11 4650 8472</phone>
+        <email>fgont@si6networks.com</email>
+        <uri>https://www.si6networks.com</uri>
+       </address>
+    </author>
+
+			<date month="February" year="2016"/>
+		</front>
+		<seriesInfo name="SI6 Networks" value="Blog"/>
+	</reference>
+
+
+
+	<reference anchor="RIPE-690" target="https://www.ripe.net/publications/docs/ripe-690">
+		<front>
+			<title>Best Current Operational Practice for Operators: IPv6 prefix assignment for end-users - persistent vs non-persistent, and what size to choose</title>
+
+
+    <author fullname="Jan Zorz" initials="J." surname="Zorz">
+
+    </author>
+
+
+    <author fullname="Sander Steffannz" initials="S." surname="Zorz">
+
+    </author>
+    <author fullname="Primoz Drazumeric" initials="P." surname="Drazumeric">
+
+    </author>
+    <author fullname="Mark Townsley" initials="M." surname="Townsley">
+
+    </author>
+    <author fullname="Andrew Alston" initials="J." surname="Alston">
+
+    </author>
+    <author fullname="Gert Doering" initials="G." surname="Doering">
+
+    </author>
+    <author fullname="Jordi Palet" initials="J." surname="Palet">
+
+    </author>
+    <author fullname="Jen Linkova" initials="J." surname="Linkova">
+
+    </author>
+
+
+    <author fullname="Luis Balbinot" initials="L." surname="Balbinot">
+
+    </author>
+
+    <author fullname="Kevin Meynell" initials="K." surname="Meynell">
+
+    </author>
+
+
+    <author fullname="Lee Howard" initials="L." surname="Howard">
+
+    </author>
+
+
+
+
+
+
+			<date month="October" year="2017"/>
+		</front>
+		<seriesInfo name="RIPE" value="690"/>
+	</reference>
+
+
+
+
+
+	<reference anchor="UK-NOF" target="https://indico.uknof.org.uk/event/41/contributions/542/attachments/712/866/bcop-ipv6-prefix-v9.pdf">
+		<front>
+			<title>IPv6 Deployment Survey (Residential/Household Services) How IPv6 is being deployed?</title>
+
+
+    <author fullname="Jordi Palet" initials="J." surname="Palet">
+
+    </author>
+
+
+			<date month="January" year="2018"/>
+		</front>
+		<seriesInfo name="UK NOF" value="39"/>
+	</reference>
+
+
+
+    </references>
+
+
+
+
+
+
+
+  </back>
+</rfc>
+<!--
+Local Variables:
+mode:xml
+End:
+=-->
