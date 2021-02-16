@@ -246,7 +246,7 @@ Table of Contents
 
    *  While there is a range of information that may be employed to
       correlate network activity [RFC7721], the use of stable prefixes
-      clearly simplifies network activity correlation thus reducing the
+      clearly simplifies network activity correlation and reduces the
       effectiveness of features such as "temporary addresses" [RFC4941].
 
    *  There might be existing advice for ISPs to deliver dynamic IPv6
